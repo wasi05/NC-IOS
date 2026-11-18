@@ -1,0 +1,2385 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NCS Cargo"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#0f4c5c">
+<style>:root{color-scheme:light}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>New Chaudhry Cargo Service</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@600&display=swap">
+<style>
+/* Layout: one narrow ledger-slip column. Four tabs: trips, party ledger (goods owners), expense-head ledgers, reports (day / month / year). */
+:root {
+  --bg: #f1f2ee;
+  --surface: #ffffff;
+  --fg: #1d2420;
+  --muted: #5f6a64;
+  --line: #d6dad3;
+  --accent: #1f5c4a;
+  --accent-fg: #ffffff;
+  --amber: #b86e00;
+  --amber-bg: #fbeccd;
+  --done: #1f5c4a;
+  --done-bg: #d9ece4;
+  --load: #2b5f9e;
+  --load-bg: #dce8f6;
+  --danger: #a8332b;
+  --hero-bg: #17463a; --hero-fg: #f3f6f4; --gold: #f2b632; --road: #0f2f26;
+  --font-display: "Segoe UI", system-ui, Arial, "Noto Naskh Arabic", sans-serif;
+  --font-body: "Segoe UI", system-ui, Roboto, Arial, "Noto Naskh Arabic", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131815; --surface: #1c231f; --fg: #e8ece8; --muted: #9aa69f; --line: #2f3a34;
+    --accent: #5fb596; --accent-fg: #0e1a14; --amber: #f0b45a; --amber-bg: #3a2e14;
+    --done: #6fc4a4; --done-bg: #1d3a2f; --load: #8ab6ec; --load-bg: #1d2f47; --danger: #ef8b82;
+    --hero-bg: #0f2a21; --hero-fg: #e8ece8; --gold: #f2b632; --road: #0a1f18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131815; --surface: #1c231f; --fg: #e8ece8; --muted: #9aa69f; --line: #2f3a34;
+  --accent: #5fb596; --accent-fg: #0e1a14; --amber: #f0b45a; --amber-bg: #3a2e14;
+  --done: #6fc4a4; --done-bg: #1d3a2f; --load: #8ab6ec; --load-bg: #1d2f47; --danger: #ef8b82;
+    --hero-bg: #0f2a21; --hero-fg: #e8ece8; --gold: #f2b632; --road: #0a1f18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-block: 20px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.panel { display: flex; flex-direction: column; gap: 14px; }
+h1 { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.3; margin: 0; font-weight: 600; }
+h2 { font-size: 1.05rem; margin: 0; }
+.sub { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: var(--line); padding: 4px; border-radius: 12px; }
+.tabs.one { grid-template-columns: 1fr; }
+.tabs button { border: none; background: transparent; min-height: 42px; font-weight: 600; color: var(--muted); padding: 6px 2px; font-size: 0.8rem; line-height: 1.4; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tot { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tot .lbl { font-size: 0.8rem; color: var(--muted); }
+.tot .amt { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; direction: ltr; text-align: left; }
+.tot .cnt { font-size: 0.78rem; color: var(--muted); }
+.tot.big { grid-column: 1 / -1; background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.tot.big .lbl, .tot.big .cnt { color: inherit; opacity: .85; }
+.tot.big .amt { font-size: 1.5rem; }
+.chip { font-size: 0.82rem; padding: 1px 12px; border-radius: 999px; font-weight: 600; display: inline-block; }
+.chip.wait { background: var(--amber-bg); color: var(--amber); }
+.chip.load { background: var(--load-bg); color: var(--load); }
+.chip.done { background: var(--done-bg); color: var(--done); }
+form { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+form .full { grid-column: 1 / -1; }
+form h2 { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; color: var(--muted); min-width: 0; }
+label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--fg); font-size: 0.95rem; }
+input[type=checkbox] { width: 20px; height: 20px; padding: 0; }
+input, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+input[type=number], input[type=date], input[type=month] { direction: ltr; text-align: left; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 8px 14px; min-height: 44px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.card .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.card .name { font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
+.card .meta { color: var(--muted); font-size: 0.86rem; overflow-wrap: anywhere; }
+.card .price { font-weight: 700; direction: ltr; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: left; }
+.calc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.92rem; border-top: 1px dashed var(--line); padding-top: 6px; }
+.calc b { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+.pos { color: var(--done); }
+.neg { color: var(--danger); }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions .grow { flex: 1; min-width: 120px; }
+.tag { font-size: 0.75rem; color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; padding: 0 6px; }
+.del { color: var(--danger); }
+.inline { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; border-top: 1px dashed var(--line); padding-top: 8px; }
+.inline.form { border: none; padding: 8px 0 0; background: none; border-radius: 0; }
+.inline.form .chk { grid-column: 1 / -1; }
+.row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.link { background: none; border: none; color: var(--muted); text-decoration: underline; min-height: 0; padding: 4px; font-size: 0.85rem; }
+.link.dl { color: var(--danger); }
+.empty { text-align: center; color: var(--muted); padding: 22px 8px; border: 1px dashed var(--line); border-radius: 12px; }
+.pbtn { text-align: left; display: flex; justify-content: space-between; gap: 10px; width: 100%; align-items: center; }
+.pbtn[aria-pressed="true"], .hbtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pbtn .bal { font-weight: 700; direction: ltr; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hbtn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 6px 10px; min-height: 62px; gap: 0; line-height: 1.5; }
+.hbtn .hn { font-weight: 700; direction: ltr; unicode-bidi: isolate; overflow-wrap: anywhere; }
+.hbtn small { color: var(--muted); direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+.hbtn.zero { opacity: .6; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; min-width: 460px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: 0.8rem; background: var(--bg); }
+td.n { direction: ltr; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.ctrl { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.note { background: var(--amber-bg); color: var(--amber); border-radius: 10px; padding: 6px 12px; font-size: 0.88rem; }
+.exlist { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--bg); }
+.exrow { display: grid; grid-template-columns: minmax(0, 1fr) 92px auto; gap: 8px; align-items: center; }
+.exn { direction: ltr; text-align: left; unicode-bidi: isolate; font-size: 0.92rem; overflow-wrap: anywhere; }
+.exrow label.chk { font-size: 0.8rem; color: var(--muted); }
+.extotal { font-weight: 700; padding-top: 6px; border-top: 1px dashed var(--line); }
+form.rowform { border-style: dashed; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 0.92rem; max-width: min(90vw, 460px); z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,.3); text-align: center; }
+#cp-sheet { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 12px max(16px, env(safe-area-inset-left, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 21; display: flex; flex-direction: column; gap: 8px; }
+td form.rowform { min-width: 420px; }
+.ctrl .full { grid-column: 1 / -1; justify-self: start; }
+.hero { position: relative; overflow: hidden; background: var(--hero-bg); color: var(--hero-fg); border-radius: 16px; padding: 14px 16px 0; }
+.hero-row { display: flex; align-items: center; gap: 14px; }
+.logo { flex: none; width: 76px; height: 76px; filter: drop-shadow(0 3px 5px rgba(0,0,0,.3)); }
+.lg-bg { fill: var(--gold); }
+.lg-ink { fill: var(--hero-bg); }
+.lg-gold { fill: var(--gold); }
+.lg-spoke { stroke: var(--gold); stroke-width: 1.6; stroke-linecap: round; }
+.wheel { transform-box: fill-box; transform-origin: center; animation: spin .8s linear infinite; }
+.truckbody { animation: bob .45s ease-in-out infinite alternate; }
+@keyframes spin { to { transform: rotate(-360deg); } }
+@keyframes bob { to { transform: translateY(-1px); } }
+.hero-text { min-width: 0; }
+.hero h1 { font-size: 1.5rem; line-height: 1.95; color: inherit; }
+.hero .en { direction: ltr; text-align: left; letter-spacing: 0.16em; font-size: 0.66rem; font-weight: 700; color: var(--gold); line-height: 1.4; }
+.hero .tagline { font-size: 0.84rem; opacity: 0.85; margin: 2px 0 0; }
+.road { position: relative; height: 22px; margin: 12px -16px 0; background: var(--road); }
+.road::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%); background: repeating-linear-gradient(90deg, var(--gold) 0 22px, transparent 22px 44px); animation: roadmove 1.1s linear infinite; }
+@keyframes roadmove { to { background-position: -44px 0; } }
+@media (prefers-reduced-motion: reduce) { .wheel, .truckbody, .road::before { animation: none; } }
+.backup { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.backup summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+.sbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.sbar button { flex: 1; min-width: 130px; }
+.actions.small button { min-height: 38px; padding: 4px 10px; font-size: 0.85rem; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); max-width: min(92vw, 420px); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; z-index: 30; font-size: 0.92rem; text-align: center; }
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.sheet-in { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
+.sheet-in textarea { min-height: 220px; }
+.exside { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.slipbtn { padding: 2px 10px; min-height: 30px; font-size: 0.82rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); text-decoration: none; }
+.slipcell { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; font-size: 0.85rem; color: var(--muted); align-items: flex-start; }
+.slipgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-height: 50vh; overflow-y: auto; }
+.slipitem { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.thumb { padding: 0; min-height: 0; border-radius: 8px; overflow: hidden; background: var(--bg); }
+.thumb img { display: block; width: 100%; height: 120px; object-fit: cover; }
+#slipview { flex-direction: column; gap: 12px; }
+#slipview img { max-width: 100%; max-height: 78vh; background: #fff; border-radius: 8px; }
+#app { display: flex; flex-direction: column; gap: 16px; }
+.authcard { max-width: 440px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.authcard form { grid-template-columns: 1fr; }
+.herolink { color: var(--gold); min-height: 0; padding: 0 4px; font-size: 0.82rem; }
+.alink { background: none; border: none; color: var(--accent); text-decoration: underline; min-height: 0; padding: 4px; font-size: 0.9rem; }
+.sline { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.errtxt { color: var(--danger); font-size: 0.9rem; margin: 0; min-height: 1.2em; }
+.codebox { direction: ltr; text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.12em; padding: 14px 8px; border: 2px dashed var(--accent); border-radius: 12px; background: var(--bg); user-select: all; font-variant-numeric: tabular-nums; }
+textarea { font: inherit; font-size: 0.8rem; direction: ltr; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 84px; resize: vertical; }
+@media (max-width: 420px) { .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tabs button { font-size: 0.72rem; } }
+
+/* ---- polish ---- */
+body { background: radial-gradient(1200px 400px at 50% -120px, color-mix(in srgb, var(--accent) 14%, transparent), transparent), var(--bg); }
+.hero { background: linear-gradient(135deg, var(--hero-bg), color-mix(in srgb, var(--hero-bg) 70%, #000)); box-shadow: 0 6px 20px rgba(0,0,0,.18); border-radius: 20px; }
+.tabs { grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(0,0,0,.06); position: sticky; top: 6px; z-index: 20; }
+.tabs.one { grid-template-columns: 1fr; }
+.tabs.two { grid-template-columns: 1fr 1fr; }
+.rstf { grid-template-columns: 1fr auto; padding: 8px; margin-bottom: 6px; border-style: dashed; }
+.tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border-radius: 12px; min-height: 52px; padding: 4px 1px; font-size: 0.66rem; line-height: 1.35; transition: background .15s, color .15s; }
+.tabs button i { font-style: normal; font-size: 1.15rem; line-height: 1.3; filter: grayscale(.6); }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+.tabs button[aria-selected="true"] i { filter: none; }
+.tabs.one button, .tabs.two button { flex-direction: row; gap: 8px; font-size: 0.95rem; }
+form, .card, .ctrl, .backup, .scroll, .tot { box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.04); }
+form, .card, .ctrl, .backup { border-radius: 16px; }
+.tot { border-radius: 14px; border-inline-start: 4px solid var(--accent); }
+.tot.big { border-inline-start-width: 1px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 75%, #000)); }
+button { border-radius: 12px; transition: transform .08s, box-shadow .15s, background .15s; }
+button:active { transform: scale(.97); }
+button.primary { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+input, select, textarea { border-radius: 10px; transition: border-color .15s, box-shadow .15s; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); outline: none; }
+h2 { font-size: 1.08rem; display: flex; align-items: center; gap: 8px; }
+.card .name { font-size: 1.02rem; }
+.card:hover { box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 10px 26px rgba(0,0,0,.08); }
+.ucard { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+.avatar { flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem; font-weight: 800; color: var(--hero-bg); background: linear-gradient(135deg, var(--gold), #f7d06e); box-shadow: 0 3px 10px rgba(0,0,0,.2); font-family: Georgia, serif; }
+.uinfo { min-width: 0; }
+.uname { font-weight: 800; font-size: 1.1rem; direction: ltr; text-align: left; overflow-wrap: anywhere; }
+.sline { padding: 10px 4px; }
+.empty { border-radius: 16px; background: var(--surface); }
+th { background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+@media (max-width: 420px) { .tabs button { font-size: 0.6rem; } .tabs button i { font-size: 1.05rem; } }
+</style>
+
+<div class="wrap" dir="ltr" lang="en">
+  <header class="hero">
+    <div class="hero-row">
+      <svg class="logo" viewBox="0 0 72 72" role="img" aria-label="New Chaudhry Cargo Service logo">
+          <rect class="lg-bg" x="2" y="2" width="68" height="68" rx="19"/>
+          <g class="truckbody">
+            <rect class="lg-ink" x="27" y="17" width="35" height="27" rx="4"/>
+            <text class="lg-gold" x="44.5" y="36" font-size="15" font-weight="800" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif">NC</text>
+            <path class="lg-ink" d="M25 25 H15 L8 35 V44 H25 Z"/>
+            <path class="lg-gold" d="M21.5 28.5 H16.8 L12.4 34.5 H21.5 Z"/>
+            <rect class="lg-ink" x="8" y="43" width="54" height="5" rx="2.5"/>
+          </g>
+          <g class="wheel"><circle class="lg-ink" cx="20" cy="52" r="7.5"/><circle class="lg-bg" cx="20" cy="52" r="3.6"/><path class="lg-spoke" d="M20 48.4V55.6M16.4 52H23.6"/></g>
+          <g class="wheel"><circle class="lg-ink" cx="50" cy="52" r="7.5"/><circle class="lg-bg" cx="50" cy="52" r="3.6"/><path class="lg-spoke" d="M50 48.4V55.6M46.4 52H53.6"/></g>
+        </svg>
+      <div class="hero-text">
+        <div class="en">New Chaudhry Cargo Service</div>
+        <h1>New Chaudhry Cargo Service</h1>
+        <p class="tagline">Trip · Ledger · Accounts<span id="who" hidden> · <b id="who-n"></b><small id="syncst"></small> <button type="button" class="link herolink" data-au="logout">Log out</button></span></p>
+      </div>
+    </div>
+    <div class="road" aria-hidden="true"></div>
+  </header>
+
+  <section id="auth" class="panel"></section>
+  <div id="app" hidden>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="trips" aria-selected="true"><i>🚚</i>Trips</button>
+    <button type="button" role="tab" data-tab="done" aria-selected="false"><i>✅</i>Completed</button>
+    <button type="button" role="tab" data-tab="party" aria-selected="false"><i>📒</i>Party</button>
+    <button type="button" role="tab" data-tab="heads" aria-selected="false"><i>🧾</i>Expense ledger</button>
+    <button type="button" role="tab" data-tab="accts" aria-selected="false"><i>🏦</i>Accounts</button>
+    <button type="button" role="tab" data-tab="report" aria-selected="false"><i>📊</i>Report</button>
+    <button type="button" role="tab" data-tab="users" aria-selected="false"><i>👤</i>User</button>
+    <button type="button" role="tab" data-tab="staff" aria-selected="false" hidden><i>🧾</i>Expenses</button>
+  </div>
+
+  <!-- Trips -->
+  <section class="panel" id="p-trips">
+    <div class="totals">
+      <div class="tot"><div class="lbl">Today’s trip profit</div><div class="amt" id="s-day"></div><div class="cnt" id="c-day"></div></div>
+      <div class="tot"><div class="lbl">This month’s trip profit</div><div class="amt" id="s-month"></div><div class="cnt" id="c-month"></div></div>
+      <div class="tot big"><div class="lbl" id="l-year"></div><div class="amt" id="s-year"></div><div class="cnt" id="c-year"></div></div>
+    </div>
+
+    <form id="trip-form" autocomplete="off">
+      <h2>New trip</h2>
+      <label class="full" for="t-date">Trip date<input id="t-date" type="date" required></label>
+      <label class="full" for="t-party">Party (owner of the goods)<input id="t-party" list="dl-party" required placeholder="e.g. Ahmed Traders"></label>
+      <label class="full" for="t-goods">Goods (with quantity)<input id="t-goods" required placeholder="e.g. 40 bags of flour"></label>
+      <label for="t-from">From<input id="t-from" required placeholder="Lahore"></label>
+      <label for="t-to">To<input id="t-to" required placeholder="Multan"></label>
+      <label for="t-veh">Vehicle no.<input id="t-veh" list="dl-veh" required placeholder="LEA-1234"></label>
+      <label for="t-drv">Driver<input id="t-drv" placeholder="Name"></label>
+      <label class="full" for="t-fr">Freight to be received from the party (Rs)<input id="t-fr" type="number" min="0" required placeholder="0"></label>
+      <p class="note full" id="t-carry" hidden></p>
+      <label for="t-div">Diversion / extra km charge (Rs)<input id="t-div" type="number" min="0" placeholder="0"></label>
+      <label for="t-dnote">Diversion note (where the vehicle went)<input id="t-dnote" placeholder="e.g. diverted via Sahiwal, 60 extra km"></label>
+      <p class="sub full">Diversion is billed to the party (added to the party ledger) and counts in the vehicle income.</p>
+      <label for="t-extra">Extra income, e.g. detention days (Rs)<input id="t-extra" type="number" min="0" placeholder="0"></label>
+      <label for="t-xnote">Extra income note<input id="t-xnote" placeholder="e.g. 1.5 days detention from dealer"></label>
+      <p class="sub full">Extra income is NOT added to the party ledger. It counts only in the vehicle's income and trip profit.</p>
+      <label class="full" for="t-cash">New cash given to the driver (Rs)<input id="t-cash" type="number" min="0" placeholder="0"></label>
+      <label for="t-cmode">Method of giving<select id="t-cmode"><option value="cash">Cash</option><option value="bank">Transfer (bank)</option></select></label>
+      <label class="full" for="t-cnote">Cash remarks<textarea id="t-cnote" placeholder="e.g. 20,000 cash + 10,000 transfer for diesel"></textarea></label>
+      <div class="slipcell">Cash/transfer slip<button type="button" class="slipbtn" data-act="slip-open" data-key="n:cash" data-title="Driver cash slip" data-skey="n:cash">Slip (0)</button></div>
+      <p class="sub full">Expenses are added after the trip is created, from the trip’s Edit, or by staff.</p>
+      <button class="primary full" type="submit">Save trip</button>
+    </form>
+
+    <div class="row-head"><h2>Active trips</h2><button class="link" type="button" data-act="clear-ex" id="clear-ex" hidden>Clear sample examples</button></div>
+    <div class="list" id="trip-list"></div>
+  </section>
+
+  <!-- Accounts -->
+  <section class="panel" id="p-accts" hidden>
+    <div class="totals">
+      <div class="tot big"><div class="lbl">Total balance (all accounts)</div><div class="amt" id="ac-total"></div></div>
+    </div>
+    <form id="acct-form" autocomplete="off">
+      <h2>Add account</h2>
+      <label class="full" for="ac-name">Account name<input id="ac-name" required placeholder="e.g. HBL Current, Cash in hand"></label>
+      <label for="ac-type">Type<select id="ac-type"><option value="bank">Bank account</option><option value="cash">Cash in hand</option></select></label>
+      <label for="ac-open">Opening balance (Rs)<input id="ac-open" type="number" placeholder="0"></label>
+      <button class="primary full" type="submit">Add account</button>
+    </form>
+    <h2>Accounts</h2>
+    <div class="hgrid" id="ac-grid"></div>
+    <form id="aent-form" autocomplete="off">
+      <h2>Add entry</h2>
+      <label class="full" for="ae-acct">Account<select id="ae-acct"></select></label>
+      <label for="ae-kind">Entry type<select id="ae-kind"><option value="in">Deposit (money in)</option><option value="out">Withdrawal (money out)</option><option value="xfer">Transfer to another account</option></select></label>
+      <label for="ae-to" id="ae-tow" hidden>To account<select id="ae-to"></select></label>
+      <label for="ae-amt">Amount (Rs)<input id="ae-amt" type="number" min="1" required placeholder="0"></label>
+      <label for="ae-date">Date<input id="ae-date" type="date" required></label>
+      <label class="full" for="ae-note">Details<input id="ae-note" placeholder="e.g. cheque no., party name, driver transfer"></label>
+      <button class="primary full" type="submit">Save entry</button>
+    </form>
+    <div class="ctrl">
+      <label for="ac-from">From date<input id="ac-from" type="date"></label>
+      <label for="ac-to">To date<input id="ac-to" type="date"></label>
+      <button type="button" class="link full" data-act="ac-clear">Clear range (show full ledger)</button>
+    </div>
+    <div class="sbar">
+      <button type="button" data-act="sh-text" data-what="acct">📤 Share text</button>
+      <button type="button" data-act="sh-pdf" data-what="acct">📄 PDF</button>
+    </div>
+    <div id="ac-detail" class="panel"></div>
+  </section>
+
+  <!-- Completed trips -->
+  <section class="panel" id="p-done" hidden>
+    <h2>Completed trips</h2>
+    <div class="totals" id="done-sum"></div>
+    <div class="list" id="done-list"></div>
+  </section>
+
+  <!-- Party ledger -->
+  <section class="panel" id="p-party" hidden>
+    <div class="totals">
+      <div class="tot big"><div class="lbl">Total still to collect from all parties</div><div class="amt" id="due-all"></div><div class="cnt" id="due-cnt"></div></div>
+    </div>
+
+    <form id="pay-form" autocomplete="off">
+      <h2>Add payment received from party</h2>
+      <label class="full" for="p-kind">Entry type<select id="p-kind"><option value="rec">Payment received from party</option><option value="bill">Old bill / opening balance (party owes us)</option></select></label>
+      <label class="full" for="pay-party">Party<input id="pay-party" list="dl-party" required placeholder="Party name"></label>
+      <label for="p-amt">Amount (Rs)<input id="p-amt" type="number" min="1" required placeholder="0"></label>
+      <label for="p-date">Date<input id="p-date" type="date" required></label>
+      <label class="full" for="p-note">Details<input id="p-note" placeholder="Cash / cheque / bank"></label>
+      <div class="full slipcell">Bank slip or receipt<button type="button" class="slipbtn" data-act="slip-open" data-key="np" data-title="Receipt slip" data-skey="np">Slip (0)</button></div>
+      <button class="primary full" type="submit">Save receipt</button>
+    </form>
+
+    <h2>Parties</h2>
+    <div class="list" id="party-list"></div>
+    <div class="ctrl">
+      <label for="pf-from">From date<input id="pf-from" type="date"></label>
+      <label for="pf-to">To date<input id="pf-to" type="date"></label>
+      <button type="button" class="link full" data-act="clear-pr">Clear range (show full ledger)</button>
+    </div>
+    <div class="sbar">
+      <button type="button" data-act="sh-text" data-what="party">📤 Share text</button>
+      <button type="button" data-act="sh-pdf" data-what="party">📄 PDF</button>
+    </div>
+    <div id="party-detail" class="panel"></div>
+  </section>
+
+  <!-- Expense ledger -->
+  <section class="panel" id="p-heads" hidden>
+    <div class="totals">
+      <div class="tot"><div class="lbl">Total expenses</div><div class="amt" id="h-exp"></div></div>
+      <div class="tot"><div class="lbl">Paid</div><div class="amt" id="h-paid"></div></div>
+      <div class="tot big"><div class="lbl">We have to pay in total</div><div class="amt" id="h-due"></div></div>
+    </div>
+
+    <form id="head-form" autocomplete="off">
+      <h2>Add expense or payment</h2>
+      <label class="full" for="h-head">Expense head<select id="h-head"></select></label>
+      <label for="h-kind">Type<select id="h-kind">
+        <option value="cash">Cash expense (paid)</option>
+        <option value="udhar">Credit expense (still to pay)</option>
+        <option value="pay">Payment made (old credit paid)</option>
+      </select></label>
+      <label for="h-amt">Amount (Rs)<input id="h-amt" type="number" min="1" required placeholder="0"></label>
+      <label for="h-date">Date<input id="h-date" type="date" required></label>
+      <label for="h-note">Details<input id="h-note" placeholder="Optional"></label>
+      <div class="full slipcell">Slip or bill<button type="button" class="slipbtn" data-act="slip-open" data-key="ng" data-title="Expense slip / bill" data-skey="ng">Slip (0)</button></div>
+      <button class="primary full" type="submit">Save</button>
+    </form>
+
+    <h2>All expense ledgers</h2>
+    <div class="hgrid" id="head-grid"></div>
+    <div class="ctrl">
+      <label for="hf-from">From date<input id="hf-from" type="date"></label>
+      <label for="hf-to">To date<input id="hf-to" type="date"></label>
+      <button type="button" class="link full" data-act="clear-hr">Clear range (show full ledger)</button>
+    </div>
+    <div class="sbar">
+      <button type="button" data-act="sh-text" data-what="head">📤 Share text</button>
+      <button type="button" data-act="sh-pdf" data-what="head">📄 PDF</button>
+    </div>
+    <div id="head-detail" class="panel"></div>
+  </section>
+
+  <!-- Report -->
+  <section class="panel" id="p-report" hidden>
+    <div class="ctrl">
+      <label for="r-mode">Report type<select id="r-mode">
+        <option value="day">Daily</option>
+        <option value="month">Monthly</option>
+        <option value="year">Annual</option>
+        <option value="range">From date to date</option>
+      </select></label>
+      <label for="r-val" id="r-valw"><span id="r-vlbl">Date</span><input id="r-val" type="date"></label>
+      <label for="r-from" id="r-fromw" hidden>From date<input id="r-from" type="date"></label>
+      <label for="r-to" id="r-tow" hidden>To date<input id="r-to" type="date"></label>
+    </div>
+    <div class="sbar">
+      <button type="button" data-act="sh-text" data-what="report">📤 Share text</button>
+      <button type="button" data-act="sh-pdf" data-what="report">📄 PDF</button>
+    </div>
+    <div id="r-body" class="panel"></div>
+  </section>
+
+  <section class="panel" id="p-users" hidden>
+    <div class="ucard">
+      <div class="avatar" id="u-av">?</div>
+      <div class="uinfo"><div class="uname" id="u-name"></div><div class="sub" id="u-role"></div><div class="sub" id="acct-info"></div></div>
+    </div>
+    <button type="button" class="full" data-au="logout">Log out</button>
+    <div id="staff-box" class="backup panel"></div>
+    <div id="bk-box" class="panel">
+    <h2>Data backup</h2>
+    <div class="backup panel">
+      <p class="sub">Your data is stored on this phone or browser only. If browser data is cleared or the phone is changed it can be lost, so copy a backup once a week and keep it in WhatsApp or Notes. Slip and bill photos are not part of the backup text; they stay on this phone only.</p>
+      <p class="sub" id="bk-info"></p>
+      <button class="primary" type="button" data-act="bk-copy">Copy backup</button>
+      <textarea id="bk-text" readonly hidden aria-label="Backup text"></textarea>
+      <label for="bk-in">To restore data from a backup, paste the copied text here<textarea id="bk-in"></textarea></label>
+      <button type="button" data-act="bk-restore" id="bk-restore">Restore data</button>
+      <p class="sub" id="bk-msg" role="status"></p>
+    </div>
+
+    </div>
+    <form id="pw-form" autocomplete="off">
+      <h2>Change password</h2>
+      <label class="full" for="pw-old">Old password<input id="pw-old" type="password" autocomplete="current-password" required></label>
+      <label for="pw-new">New password<input id="pw-new" type="password" minlength="6" autocomplete="new-password" required></label>
+      <label for="pw-new2">Re-enter<input id="pw-new2" type="password" minlength="6" autocomplete="new-password" required></label>
+      <button class="primary full" type="submit">Change password</button>
+      <p class="sub full" id="pw-msg" role="status"></p>
+      <p class="sub full">This login keeps this phone signed in. Data is not encrypted, so also keep a lock on your phone.</p>
+    </form>
+  </section>
+
+  <section class="panel" id="p-staff" hidden>
+    <form id="staff-form" autocomplete="off">
+      <h2>Add expense</h2>
+      <label class="full" for="s-trip">Which trip is this expense for<select id="s-trip" required></select></label>
+      <label class="full" for="s-head">Expense head<select id="s-head"></select></label>
+      <label for="s-kind">Type<select id="s-kind">
+        <option value="cash">Cash expense (paid)</option>
+        <option value="udhar">Credit expense (still to pay)</option>
+      </select></label>
+      <label for="s-amt">Amount (Rs)<input id="s-amt" type="number" min="1" required placeholder="0"></label>
+      <label for="s-date">Date<input id="s-date" type="date" required></label>
+      <label for="s-note">Details<input id="s-note" placeholder="Optional"></label>
+      <div class="full slipcell">Slip or bill<button type="button" class="slipbtn" data-act="slip-open" data-key="ns" data-title="Expense slip / bill" data-skey="ns">Slip (0)</button></div>
+      <button class="primary full" type="submit">Save</button>
+    </form>
+    <h2>Recorded expenses</h2>
+    <div id="staff-list"></div>
+  </section>
+
+  <div id="toast" role="status" hidden></div>
+  <div id="cp-sheet" hidden>
+    <p class="sub">Automatic copy failed. The text is selected; copy it yourself.</p>
+    <textarea id="cp-box" readonly></textarea>
+    <button type="button" data-act="cp-close">Close</button>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div id="slipsheet" class="sheet" hidden>
+    <div class="sheet-in">
+      <h2 id="ss-title">Slip / bill</h2>
+      <div class="slipgrid" id="ss-grid"></div>
+      <input id="ss-file" type="file" accept="image/*" hidden aria-label="Slip image">
+      <input id="ss-cam" type="file" accept="image/*" capture="environment" hidden aria-label="Photo from camera">
+      <button type="button" class="primary" data-act="ss-cam">📷 Take a photo with the camera</button>
+      <button type="button" data-act="ss-add">🖼 Choose from gallery / files</button>
+      <p class="sub" id="ss-msg" role="status"></p>
+      <button type="button" data-act="ss-close">Close</button>
+    </div>
+  </div>
+  <div id="slipview" class="sheet" hidden>
+    <img id="sv-img" alt="Slip">
+    <button type="button" class="primary" data-act="sv-close">Close</button>
+  </div>
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-in">
+      <h2>Report text</h2>
+      <p class="sub" dir="ltr">Copy this text, send it on WhatsApp, or download it as a file.</p>
+      <textarea id="sheet-text" readonly aria-label="Report text"></textarea>
+      <div class="sbar">
+        <button type="button" class="primary" data-act="sheet-copy">📋 Copy</button>
+        <button type="button" data-act="sheet-wa">💬 WhatsApp</button>
+        <button type="button" data-act="sheet-dl">⬇ Download .txt</button>
+      </div>
+      <button type="button" data-act="sheet-close">Close</button>
+    </div>
+  </div>
+
+  <datalist id="dl-party"></datalist>
+  <datalist id="dl-veh"></datalist>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = "delivery-register-v2";
+  var STAGES = ["wait", "load", "done"];
+  var LABELS = { wait: "Awaiting loading", load: "In transit", done: "Delivered" };
+  var NEXT = { wait: "Load goods", load: "Delivered" };
+  var EXPLIST = ["Toll Tax", "Loading/Unloading", "Motorway Challan", "Police Challan", "Mess Expense", "Port Expense", "Laundry", "Phone Expense", "Tyre Expense", "PP Expense", "Maintenance Bill", "Grease/Service", "Local Expense", "Misc Expense", "Udhar Diesel", "Payroll", "New Tyre", "Net Diesel", "Usman PS", "Border/Chowki", "Cleaner", "Chowkidara"];
+  var LEGACY = { diesel: "Net Diesel", toll: "Toll Tax", driver: "Payroll", labour: "Loading/Unloading", repair: "Maintenance Bill", other: "Misc Expense", "Tool Tax": "Toll Tax", "Loading UN-Loading": "Loading/Unloading", "Laundary": "Laundry", "Grees/Service": "Grease/Service", "UdharDiesel": "Udhar Diesel", "UsmanPS": "Usman PS", "Chokidara": "Chowkidara" };
+  function tl(k) { return LEGACY[k] || k; }
+  var NOPARTY = "Cash / no name";
+  var KINDTXT = { cash: "Cash expense", udhar: "Credit expense / old balance (still to pay)", pay: "Payment made (against old credit)" };
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function today() { return ymd(new Date()); }
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return ymd(d); }
+  function $(id) { return document.getElementById(id); }
+  function money(n) { return "Rs " + Math.round(n).toLocaleString("en-US"); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function sum(arr, f) { return arr.reduce(function (a, x) { return a + f(x); }, 0); }
+  function expTotal(t) { return sum(t.exp, function (e) { return e.amt; }); }
+  function bill(t) { return t.freight + (t.div || 0); }
+  function profit(t) { return bill(t) + (t.extra || 0) - expTotal(t); }
+  function earn(t) { return bill(t) + (t.extra || 0); }
+  function pname(x) { var n = (x.party || "").trim(); return !n || n === "\u0646\u0642\u062f / \u0628\u063a\u06cc\u0631 \u0646\u0627\u0645" ? NOPARTY : n; }
+  function cls(n) { return n < 0 ? "neg" : "pos"; }
+  function inP(d, pre) { return !!d && String(d).indexOf(pre) === 0; }
+  function cmpDate(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+
+  var trips = [], pays = [], gexp = [], accts = [], aent = [];
+  var ui = { tab: "trips", party: null, head: null, editTrip: null, editRow: null, confirm: null, rmode: "day", rval: today(), rfrom: "", rto: "", pf: "", pt: "", hf: "", ht: "", acct: null, af: "", at: "", editAcct: false };
+  var restored = false;
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) { var o = JSON.parse(raw); trips = o.trips || []; pays = o.pays || []; gexp = o.gexp || []; accts = o.accts || []; aent = o.aent || []; restored = true; }
+  } catch (e) {}
+  if (!restored) {
+    trips = [
+      { id: 1, party: "Ahmed Traders", goods: "40 bags of flour", from: "Lahore", to: "Multan", veh: "LEA-1234", drv: "Aslam", freight: 28000, stage: "done", date: daysAgo(4), example: true, exp: [{ type: "Net Diesel", amt: 11000 }, { type: "Toll Tax", amt: 1200 }, { type: "Payroll", amt: 3000 }] },
+      { id: 2, party: "Ahmed Traders", goods: "25 sacks of rice", from: "Lahore", to: "Faisalabad", veh: "LEA-1234", drv: "Aslam", freight: 14000, stage: "done", date: today(), example: true, exp: [{ type: "Udhar Diesel", amt: 5000, udhar: true }, { type: "Toll Tax", amt: 600 }] },
+      { id: 3, party: "Raza Cloth House", goods: "12 bales of cloth", from: "Faisalabad", to: "Karachi", veh: "LEB-5588", drv: "Bashir", freight: 45000, stage: "load", date: today(), example: true, exp: [{ type: "Net Diesel", amt: 18000 }] },
+      { id: 4, party: "Raza Cloth House", goods: "8 bales of cloth", from: "Lahore", to: "Multan", veh: "LEB-5588", drv: "Bashir", freight: 20000, stage: "wait", date: today(), example: true, exp: [] }
+    ];
+    pays = [{ id: 5, party: "Ahmed Traders", amt: 30000, note: "Cash", date: daysAgo(1), example: true }];
+    gexp = [
+      { id: 6, head: "Mess Expense", kind: "cash", amt: 1500, date: today(), note: "", example: true },
+      { id: 7, head: "Udhar Diesel", kind: "udhar", amt: 20000, date: daysAgo(2), note: "From the pump", example: true },
+      { id: 8, head: "Udhar Diesel", kind: "pay", amt: 8000, date: daysAgo(1), note: "", example: true }
+    ];
+  }
+  if (!restored) {
+    trips[0].cash = 16000; trips[1].cash = 7000;
+  }
+  trips.forEach(function (t) { if (!t.date) t.date = today(); if (!t.exp) t.exp = []; });
+  function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify({ trips: trips, pays: pays, gexp: gexp, accts: accts, aent: aent })); } catch (e) {} }
+  function save() { saveLocal(); syncPush(); }
+
+  function doneIn(pre) { return trips.filter(function (x) { return x.stage === "done" && inP(x.date, pre); }); }
+
+  function cashSpent(t) { return sum(t.exp, function (e) { return e.udhar ? 0 : e.amt; }); }
+  function cashLeft(t) { return (t.carry || 0) + (t.cash || 0) - cashSpent(t); }
+  function prevTrip(drv, veh, beforeId) {
+    var d = (drv || "").trim().toLowerCase(), v = (veh || "").trim().toLowerCase(), best = null;
+    trips.forEach(function (x) {
+      if (beforeId && x.id >= beforeId) return;
+      var same = d ? (x.drv || "").trim().toLowerCase() === d : (!!v && (x.veh || "").trim().toLowerCase() === v);
+      if (same && (!best || x.id > best.id)) best = x;
+    });
+    return best;
+  }
+  function carryFor(drv, veh, beforeId) { var q = prevTrip(drv, veh, beforeId); return q ? cashLeft(q) : 0; }
+
+  /* ---------- Range ---------- */
+  function rangeSplit(all, from, to, delta) {
+    var opening = 0, rows = [];
+    all.forEach(function (x) {
+      if (from && x.date < from) opening += delta(x);
+      else if (!to || x.date <= to) rows.push(x);
+    });
+    return { opening: opening, rows: rows };
+  }
+  function rangeLabel(from, to) { return from || to ? " (" + (from || "start") + " to " + (to || "today") + ")" : ""; }
+  function tile(lbl, val, big) { return '<div class="tot' + (big ? " big" : "") + '"><div class="lbl">' + lbl + '</div><div class="amt">' + val + "</div></div>"; }
+
+  /* ---------- Party ledger ---------- */
+  function partyNames() {
+    var s = {};
+    trips.forEach(function (t) { s[pname(t)] = 1; });
+    pays.forEach(function (p) { s[pname(p)] = 1; });
+    return Object.keys(s);
+  }
+  function entries(name) {
+    var e = [];
+    trips.forEach(function (t) {
+      if (t.stage === "done" && pname(t) === name) e.push({ date: t.date, id: t.id, text: t.goods + " (" + t.from + " → " + t.to + ") · " + t.veh + (t.div ? " (incl. diversion " + money(t.div) + ")" : ""), debit: bill(t), credit: 0 });
+    });
+    pays.forEach(function (p) {
+      if (pname(p) !== name) return;
+      if (p.kind === "bill") e.push({ date: p.date, id: p.id, payId: p.id, payKind: "bill", text: "Old bill " + (p.note || ""), debit: p.amt, credit: 0 });
+      else e.push({ date: p.date, id: p.id, payId: p.id, text: "Payment received " + (p.note || ""), debit: 0, credit: p.amt });
+    });
+    e.sort(function (a, b) { return cmpDate(a.date, b.date) || a.id - b.id; });
+    var run = 0;
+    e.forEach(function (x) { run += x.debit - x.credit; x.bal = run; });
+    return e;
+  }
+  function balance(name) { var e = entries(name); return e.length ? e[e.length - 1].bal : 0; }
+
+  /* ---------- Expense ledger ---------- */
+  function headNames() {
+    var s = EXPLIST.slice();
+    trips.forEach(function (t) { t.exp.forEach(function (e) { var k = tl(e.type); if (s.indexOf(k) < 0) s.push(k); }); });
+    gexp.forEach(function (g) { var k = tl(g.head); if (s.indexOf(k) < 0) s.push(k); });
+    return s;
+  }
+  function headEntries(head) {
+    var e = [], seq = 0;
+    trips.forEach(function (t) {
+      t.exp.forEach(function (x, i) {
+        if (tl(x.type) !== head) return;
+        e.push({ date: t.date, seq: seq++, tid: t.id, head: head, text: pname(t) + " · " + t.from + " → " + t.to + " · " + t.veh + (x.udhar ? " (Credit)" : ""), exp: x.amt, paid: x.udhar ? 0 : x.amt });
+      });
+    });
+    gexp.forEach(function (g) {
+      if (tl(g.head) !== head) return;
+      e.push({ date: g.date, seq: seq++, gid: g.id, text: KINDTXT[g.kind] + (g.note ? " · " + g.note : "") + (g.by ? " · Staff: " + g.by : ""), exp: g.kind === "pay" ? 0 : g.amt, paid: g.kind === "udhar" ? 0 : g.amt });
+    });
+    e.sort(function (a, b) { return cmpDate(a.date, b.date) || a.seq - b.seq; });
+    var run = 0;
+    e.forEach(function (x) { run += x.exp - x.paid; x.bal = run; });
+    return e;
+  }
+  function headSum(head) {
+    var e = headEntries(head);
+    return { n: e.length, exp: sum(e, function (x) { return x.exp; }), paid: sum(e, function (x) { return x.paid; }), bal: e.length ? e[e.length - 1].bal : 0 };
+  }
+  function balTxt(b) { return b > 0 ? "Payable " + money(b) : b < 0 ? "Receivable " + money(-b) : "Settled"; }
+
+  /* ---------- Slip / bill photos ---------- */
+  var pend = {};
+  var idbP = null;
+  function idbOpen() {
+    if (idbP) return idbP;
+    idbP = new Promise(function (res) {
+      try {
+        var rq = indexedDB.open("ncs-slips", 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore("slips"); };
+        rq.onsuccess = function () { res(rq.result); };
+        rq.onerror = function () { res(null); };
+      } catch (e) { res(null); }
+    });
+    return idbP;
+  }
+  function slipPutLocal(id, url) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        if (db) {
+          try {
+            var tx = db.transaction("slips", "readwrite");
+            tx.objectStore("slips").put(url, id);
+            tx.oncomplete = function () { res(); };
+            tx.onerror = function () { rej(tx.error); };
+            return;
+          } catch (e) {}
+        }
+        try { localStorage.setItem("slip-" + id, url); res(); } catch (e2) { rej(e2); }
+      });
+    });
+  }
+  function slipPut(id, url) { return slipPutLocal(id, url).then(function () { slipUp(id); }); }
+  function slipUp(id) {
+    if (!(fbOn() && fbSess)) return;
+    slipGetLocal(id).then(function (u) {
+      if (!u) return;
+      fdb("PUT", "slips/" + id, u).catch(function () { try { var q = JSON.parse(localStorage.getItem("ncs-slipq") || "[]"); if (q.indexOf(id) < 0) q.push(id); localStorage.setItem("ncs-slipq", JSON.stringify(q)); } catch (e) {} });
+    });
+  }
+  function slipFlush() {
+    var q = []; try { q = JSON.parse(localStorage.getItem("ncs-slipq") || "[]"); } catch (e) {}
+    if (!q.length) return;
+    try { localStorage.setItem("ncs-slipq", "[]"); } catch (e) {}
+    q.forEach(slipUp);
+  }
+  function slipGet(id) {
+    return slipGetLocal(id).then(function (u) {
+      if (u || !(fbOn() && fbSess)) return u;
+      return fdb("GET", "slips/" + id).then(function (r) { if (r) { slipPutLocal(id, r); return r; } return null; }, function () { return null; });
+    });
+  }
+  function slipGetLocal(id) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res) {
+        var ls = function () { try { res(localStorage.getItem("slip-" + id)); } catch (e) { res(null); } };
+        if (!db) { ls(); return; }
+        try {
+          var rq = db.transaction("slips").objectStore("slips").get(id);
+          rq.onsuccess = function () { if (rq.result) res(rq.result); else ls(); };
+          rq.onerror = ls;
+        } catch (e) { ls(); }
+      });
+    });
+  }
+  function slipDel(id) {
+    idbOpen().then(function (db) { if (db) { try { db.transaction("slips", "readwrite").objectStore("slips")["delete"](id); } catch (e) {} } });
+    try { localStorage.removeItem("slip-" + id); } catch (e) {}
+    if (fbOn() && fbSess && role === "admin") fdb("DELETE", "slips/" + id).catch(function () {});
+  }
+  function compressImage(file) {
+    return new Promise(function (res, rej) {
+      var img = new Image(), u = URL.createObjectURL(file);
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight, sc = Math.min(1, (fbOn() ? 1024 : 1280) / Math.max(w, h));
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc));
+        var cx = c.getContext("2d");
+        cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
+        cx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u);
+        res(c.toDataURL("image/jpeg", fbOn() ? 0.6 : 0.72));
+      };
+      img.onerror = function () { URL.revokeObjectURL(u); rej(new Error("image")); };
+      img.src = u;
+    });
+  }
+  function isSaved(key) { return /^[gpt]:/.test(key); }
+  function tripOf(key) { var p = key.split(":"); return { t: find(p[1]), name: p.slice(2).join(":") }; }
+  function bucketGet(key) {
+    var p = key.split(":");
+    if (p[0] === "g") { var g = gexp.filter(function (x) { return String(x.id) === p[1]; })[0]; return g && g.slips ? g.slips : []; }
+    if (p[0] === "p") { var q = pays.filter(function (x) { return String(x.id) === p[1]; })[0]; return q && q.slips ? q.slips : []; }
+    if (p[0] === "t") {
+      var b = tripOf(key);
+      if (!b.t) return [];
+      if (b.name === "cash") return b.t.cashSlips || [];
+      var o = [];
+      b.t.exp.forEach(function (x) { if (tl(x.type) === b.name) (x.slips || []).forEach(function (i) { o.push(i); }); });
+      return o;
+    }
+    return pend[key] || [];
+  }
+  function bucketSet(key, arr) {
+    var p = key.split(":");
+    if (p[0] === "g") { var g = gexp.filter(function (x) { return String(x.id) === p[1]; })[0]; if (g) g.slips = arr; }
+    else if (p[0] === "p") { var q = pays.filter(function (x) { return String(x.id) === p[1]; })[0]; if (q) q.slips = arr; }
+    else if (p[0] === "t") {
+      var b = tripOf(key);
+      if (b.t) {
+        if (b.name === "cash") b.t.cashSlips = arr;
+        else { var first = true; b.t.exp.forEach(function (x) { if (tl(x.type) === b.name) { x.slips = first ? arr : []; first = false; } }); }
+      }
+    }
+    else pend[key] = arr;
+    if (isSaved(key)) save();
+  }
+  function slipBtn(key, title) {
+    return '<button type="button" class="slipbtn" data-act="slip-open" data-key="' + esc(key) + '" data-title="' + esc(title) + '" data-skey="' + esc(key) + '">Slip (' + bucketGet(key).length + ")</button>";
+  }
+  function slipLink(key, label, title) {
+    return '<button type="button" class="link" data-act="slip-open" data-key="' + esc(key) + '" data-title="' + esc(title) + '">' + esc(label) + " (" + bucketGet(key).length + ")</button>";
+  }
+  function refreshSlipLabels() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-skey]"), function (el) { el.textContent = "Slip (" + bucketGet(el.getAttribute("data-skey")).length + ")"; });
+  }
+  function ensurePend(t) {
+    var pre = "e" + t.id + ":";
+    if (pend[pre + "init"]) return;
+    var m = expMap(t.exp);
+    EXPLIST.forEach(function (k, i) { pend[pre + i] = (m[k] && m[k].slips ? m[k].slips : []).slice(); });
+    pend[pre + "cash"] = (t.cashSlips || []).slice();
+    pend[pre + "init"] = [1];
+  }
+  function clearPend(prefix) { Object.keys(pend).forEach(function (k) { if (k.indexOf(prefix) === 0) delete pend[k]; }); }
+  function tripSlipIds(t) {
+    var o = (t.cashSlips || []).slice();
+    t.exp.forEach(function (x) { (x.slips || []).forEach(function (i) { o.push(i); }); });
+    return o;
+  }
+  function slipChips(t) {
+    var parts = [], seen = {};
+    t.exp.forEach(function (x) {
+      var k = tl(x.type);
+      if (seen[k]) return;
+      seen[k] = 1;
+      if (bucketGet("t:" + t.id + ":" + k).length) parts.push(slipLink("t:" + t.id + ":" + k, k, k + " slip / bill"));
+    });
+    if ((t.cashSlips || []).length) parts.push(slipLink("t:" + t.id + ":cash", "Driver cash" + (t.cashMode === "bank" ? " (Bank)" : ""), "Driver cash slip"));
+    return parts.length ? '<div class="meta">Slips: ' + parts.join(" · ") + "</div>" : "";
+  }
+  function openSlips(key, title) {
+    ui.ss = key; ui.ssConf = null;
+    $("ss-title").textContent = title || "Slip / bill"; $("ss-msg").textContent = "";
+    $("slipsheet").hidden = false; drawSlips();
+  }
+  function drawSlips() {
+    var ids = bucketGet(ui.ss), g = $("ss-grid");
+    if (!ids.length) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">No slips yet. Add one below.</div>'; return; }
+    g.innerHTML = ids.map(function (id) {
+      return '<div class="slipitem"><button type="button" class="thumb" data-act="ss-view" data-sid="' + id + '"><img alt="Slip" data-sid="' + id + '"></button>' +
+        '<button type="button" class="link dl" data-act="ss-del" data-sid="' + id + '">' + (ui.ssConf === id ? "Sure? Delete" : "Delete") + "</button></div>";
+    }).join("");
+    Array.prototype.forEach.call(g.querySelectorAll("img[data-sid]"), function (im) {
+      slipGet(im.getAttribute("data-sid")).then(function (u) { if (u) im.src = u; else im.alt = "Image not found"; });
+    });
+  }
+  function onSlipFile(inp) {
+    var f = inp.files && inp.files[0];
+    inp.value = "";
+    if (!f || !ui.ss) return;
+    var key = ui.ss;
+    $("ss-msg").textContent = "Adding slip...…";
+    compressImage(f).then(function (url) {
+      var id = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      return slipPut(id, url).then(function () {
+        bucketSet(key, bucketGet(key).concat([id]));
+        $("ss-msg").textContent = "Slip added.";
+        if (ui.ss === key) drawSlips();
+        refreshSlipLabels();
+      });
+    })["catch"](function () { $("ss-msg").textContent = "The slip could not be added. The image did not open or storage is full."; });
+  }
+
+  /* ---------- Edit form ---------- */
+  function expMap(exp) {
+    var m = {};
+    (exp || []).forEach(function (e) { var k = tl(e.type); var r = m[k] = m[k] || { amt: 0, udhar: false, slips: [] }; r.amt += e.amt; if (e.udhar) r.udhar = true; (e.slips || []).forEach(function (i) { r.slips.push(i); }); });
+    return m;
+  }
+  function expRows(map, ns) {
+    map = map || {};
+    var total = sum(Object.keys(map), function (k) { return map[k].amt; });
+    return '<div class="exlist">' + EXPLIST.map(function (k, i) {
+      var r = map[k];
+      return '<div class="exrow"><span class="exn">' + esc(k) + '</span><input name="x' + i + '" type="number" min="0" placeholder="0" aria-label="' + esc(k) + '"' + (r ? ' value="' + r.amt + '"' : "") + '><div class="exside"><label class="chk"><input type="checkbox" name="u' + i + '"' + (r && r.udhar ? " checked" : "") + '> Credit</label>' + slipBtn(ns + ":" + i, k + " slip / bill") + "</div></div>";
+    }).join("") + '<div class="extotal">Total expenses: <span class="extv">' + money(total) + "</span></div></div>";
+  }
+  function readExp(f, ns) {
+    var out = [];
+    EXPLIST.forEach(function (k, i) {
+      var a = Number(f.elements["x" + i].value) || 0;
+      if (a > 0) { var o = { type: k, amt: a, udhar: f.elements["u" + i].checked }; var sl = pend[ns + ":" + i]; if (sl && sl.length) o.slips = sl.slice(); out.push(o); }
+    });
+    return out;
+  }
+  function opts(list, cur) { return list.map(function (k) { return '<option value="' + esc(k) + '"' + (k === cur ? " selected" : "") + ">" + esc(k) + "</option>"; }).join(""); }
+  function tripEditForm(t) {
+    ensurePend(t);
+    var st = STAGES.map(function (k) { return '<option value="' + k + '"' + (k === t.stage ? " selected" : "") + ">" + LABELS[k] + "</option>"; }).join("");
+    return '<form class="rowform" data-form="edit-trip" data-id="' + t.id + '">' +
+      '<label class="full">Trip date<input name="date" type="date" required value="' + esc(t.date) + '"></label>' +
+      '<label class="full">Party<input name="party" list="dl-party" required value="' + esc(t.party || "") + '"></label>' +
+      '<label class="full">Goods<input name="goods" required value="' + esc(t.goods) + '"></label>' +
+      '<label>From<input name="from" required value="' + esc(t.from) + '"></label>' +
+      '<label>To<input name="to" required value="' + esc(t.to) + '"></label>' +
+      '<label>Vehicle no.<input name="veh" list="dl-veh" required value="' + esc(t.veh) + '"></label>' +
+      '<label>Driver<input name="drv" value="' + esc(t.drv || "") + '"></label>' +
+      '<label>Freight (party)<input name="freight" type="number" min="0" required value="' + t.freight + '"></label>' +
+      '<label>Diversion / extra km (billed to party)<input name="div" type="number" min="0" value="' + (t.div || 0) + '"></label>' +
+      '<label class="full">Diversion note (where the vehicle went)<input name="dnote" value="' + esc(t.divNote || "") + '"></label>' +
+      '<label>Extra income (not in party ledger)<input name="extra" type="number" min="0" value="' + (t.extra || 0) + '"></label>' +
+      '<label class="full">Extra income note<input name="xnote" value="' + esc(t.extraNote || "") + '"></label>' +
+      '<label>Status<select name="stage">' + st + "</select></label>" +
+      '<label class="full">Previous balance carried from last trip (can be negative)<input name="carry" type="number" step="1" value="' + (t.carry || 0) + '"></label>' +
+      '<label class="full">New cash given to the driver<input name="cash" type="number" min="0" value="' + (t.cash || 0) + '"></label>' +
+      '<label class="full">Cash remarks<textarea name="cnote">' + esc(t.cashNote || "") + '</textarea></label>' +
+      '<label>Method of giving<select name="cmode"><option value="cash"' + (t.cashMode === "bank" ? "" : " selected") + '>Cash</option><option value="bank"' + (t.cashMode === "bank" ? " selected" : "") + '>Bank transfer</option></select></label>' +
+      '<div class="slipcell">Cash slip' + slipBtn("e" + t.id + ":cash", "Driver cash slip") + "</div>" +
+      '<div class="full"><h2>Expenses</h2></div><div class="full">' + expRows(expMap(t.exp), "e" + t.id) + "</div>" +
+      '<button class="primary" type="submit">Save</button><button type="button" data-act="cancel-edit">Cancel</button></form>';
+  }
+  function payEditForm(id) {
+    var p = pays.filter(function (x) { return x.id === id; })[0];
+    if (!p) return "";
+    return '<form class="rowform" data-form="edit-pay" data-id="' + p.id + '">' +
+      '<label>Party<input name="party" list="dl-party" value="' + esc(p.party) + '"></label>' +
+      '<label>Amount<input name="amt" type="number" min="1" required value="' + p.amt + '"></label>' +
+      '<label>Date<input name="date" type="date" required value="' + esc(p.date) + '"></label>' +
+      '<label>Type<select name="kind"><option value="rec"' + (p.kind === "bill" ? "" : " selected") + '>Payment received</option><option value="bill"' + (p.kind === "bill" ? " selected" : "") + '>Old bill</option></select></label>' +
+      '<label>Details<input name="note" value="' + esc(p.note || "") + '"></label>' +
+      '<button class="primary" type="submit">Saved</button><button type="button" data-act="cancel-edit">Cancel</button></form>';
+  }
+  function gEditForm(id) {
+    var g = gexp.filter(function (x) { return x.id === id; })[0];
+    if (!g) return "";
+    var kinds = Object.keys(KINDTXT).map(function (k) { return '<option value="' + k + '"' + (k === g.kind ? " selected" : "") + ">" + KINDTXT[k] + "</option>"; }).join("");
+    return '<form class="rowform" data-form="edit-g" data-id="' + g.id + '">' +
+      '<label class="full">Expense head<select name="head">' + opts(headNames(), tl(g.head)) + "</select></label>" +
+      '<label>Type<select name="kind">' + kinds + "</select></label>" +
+      '<label>Amount<input name="amt" type="number" min="1" required value="' + g.amt + '"></label>' +
+      '<label>Date<input name="date" type="date" required value="' + esc(g.date) + '"></label>' +
+      '<label>Details<input name="note" value="' + esc(g.note || "") + '"></label>' +
+      '<button class="primary" type="submit">Saved</button><button type="button" data-act="cancel-edit">Cancel</button></form>';
+  }
+  function teEditForm(tid, head) {
+    var t = find(tid);
+    if (!t) return "";
+    var m = expMap(t.exp.filter(function (x) { return tl(x.type) === head; }))[head] || { amt: 0, udhar: false };
+    return '<form class="rowform" data-form="edit-te" data-id="' + t.id + '" data-head="' + esc(head) + '">' +
+      '<label>Amount (enter 0 to remove)<input name="amt" type="number" min="0" required value="' + m.amt + '"></label>' +
+      '<label class="chk"><input type="checkbox" name="udhar"' + (m.udhar ? " checked" : "") + "> Credit</label>" +
+      '<p class="sub full">This expense belongs to a trip. To change the date, edit that trip in Trips.</p>' +
+      '<button class="primary" type="submit">Saved</button><button type="button" data-act="cancel-edit">Cancel</button></form>';
+  }
+
+  /* ---------- Trips ---------- */
+  function renderTrips() {
+    var t0 = today();
+    [["day", t0], ["month", t0.slice(0, 7)], ["year", t0.slice(0, 4)]].forEach(function (p) {
+      var d = doneIn(p[1]);
+      $("s-" + p[0]).textContent = money(sum(d, profit));
+      $("c-" + p[0]).textContent = d.length + " trips completed · freight " + money(sum(d, earn));
+    });
+    $("l-year").textContent = "Total trip profit " + t0.slice(0, 4);
+    $("clear-ex").hidden = !(trips.some(function (i) { return i.example; }) || pays.some(function (i) { return i.example; }) || gexp.some(function (i) { return i.example; }));
+
+    var act = trips.filter(function (t) { return t.stage !== "done"; }).sort(function (a, b) { return STAGES.indexOf(a.stage) - STAGES.indexOf(b.stage) || cmpDate(b.date, a.date) || b.id - a.id; });
+    var dn = trips.filter(function (t) { return t.stage === "done"; }).sort(function (a, b) { return cmpDate(b.date, a.date) || b.id - a.id; });
+    $("trip-list").innerHTML = act.length ? act.map(tripCard).join("") : '<div class="empty">' + (trips.length ? "No trip in progress. All are in the Completed tab." : "No trips yet. Add the first trip above.") + "</div>";
+    $("done-list").innerHTML = dn.length ? dn.map(tripCard).join("") : '<div class="empty">No trip completed yet.</div>';
+    $("done-sum").innerHTML = tile("Completed trips", String(dn.length)) + tile("Total freight + extra", money(sum(dn, earn))) + tile("Total expenses", money(sum(dn, expTotal))) + tile("Total profit", money(sum(dn, profit)));
+    function tripCard(t) {
+      var ex = expTotal(t), pr = profit(t);
+      var brk = t.exp.map(function (e) {
+        return esc(tl(e.type)) + " " + Math.round(e.amt).toLocaleString("en-US") + (e.udhar ? " (Credit)" : "");
+      }).join(" · ");
+      var h = '<div class="card" id="trip-' + t.id + '"><div class="top"><div style="min-width:0"><div class="name">' + esc(pname(t)) + " — " + esc(t.goods) + '</div>';
+      h += '<div class="meta">' + esc(t.from) + " → " + esc(t.to) + " · " + esc(t.veh) + (t.drv ? " · " + esc(t.drv) : "") + " · <b>" + esc(t.date) + "</b> · <b>" + tcode(t) + "</b></div></div>";
+      h += '<div><div class="price">' + money(t.freight) + (t.div ? '<div class="sub">+ ' + money(t.div) + ' diversion</div>' : "") + (t.extra ? '<div class="sub">+ ' + money(t.extra) + ' extra</div>' : "") + '</div><span class="chip ' + t.stage + '">' + LABELS[t.stage] + "</span></div></div>";
+      h += '<div class="calc"><span>Expense: <b>' + money(ex) + '</b></span><span>Profit: <b class="' + cls(pr) + '">' + money(pr) + "</b></span></div>";
+      if (t.divNote) h += '<div class="meta">Diversion note: ' + esc(t.divNote) + "</div>";
+      if (t.extraNote) h += '<div class="meta">Extra income note: ' + esc(t.extraNote) + "</div>";
+      var cs = cashSpent(t);
+      if ((t.cash || 0) > 0 || cs > 0 || t.carry) {
+        var rem = cashLeft(t);
+        h += '<div class="calc">' + (t.carry ? '<span>Previous balance: <b class="' + (t.carry < 0 ? "neg" : "pos") + '">' + money(t.carry) + '</b></span>' : "") + '<span>New cash' + (t.cashMode === "bank" ? " (Bank)" : "") + ': <b>' + money(t.cash || 0) + '</b></span><span>Cash expense: <b>' + money(cs) + '</b></span><span>Cash left: <b class="' + (rem < 0 ? "neg" : "pos") + '">' + money(rem) + "</b></span></div>" + (t.cashNote ? '<div class="meta">Cash remarks: ' + esc(t.cashNote) + "</div>" : "");
+      }
+      if (brk) h += '<div class="meta">' + brk + "</div>";
+      if (t.sx && t.sx.length) h += '<div class="meta">Staff expenses: ' + t.sx.map(function (q) { return esc(tl(q.head)) + " " + Math.round(q.amt).toLocaleString("en-US") + (q.udhar ? " (Credit)" : "") + (q.by ? " · " + esc(q.by) : "") + (q.conflict ? " ⚠ cash/credit mismatch, please check" : ""); }).join(" | ") + "</div>";
+      h += slipChips(t);
+      h += '<div class="actions">';
+      if (t.stage !== "done") h += '<button type="button" class="primary grow" data-act="next" data-id="' + t.id + '">' + NEXT[t.stage] + "</button>";
+      h += '<button type="button" data-act="edit-trip" data-id="' + t.id + '">' + (ui.editTrip === t.id ? "Close" : "Edit") + "</button>";
+      if (t.example) h += '<span class="tag">Sample</span>';
+      h += '<button type="button" class="del" data-act="del" data-id="' + t.id + '">' + (ui.confirm === t.id ? "Sure? Delete" : "Delete") + "</button></div>";
+      h += '<div class="actions small"><span class="sub">Send:</span>' +
+        '<button type="button" data-act="sh-text" data-what="trip-full" data-id="' + t.id + '">📤 Trip report</button>' +
+        '<button type="button" data-act="sh-pdf" data-what="trip-full" data-id="' + t.id + '">📄 PDF</button>' +
+        '<button type="button" data-act="sh-text" data-what="trip-bill" data-id="' + t.id + '">📤 Bill (without expenses)</button>' +
+        '<button type="button" data-act="sh-pdf" data-what="trip-bill" data-id="' + t.id + '">📄 Bill PDF</button></div>';
+      if (ui.editTrip === t.id) h += tripEditForm(t);
+      return h + "</div>";
+    }
+  }
+
+  /* ---------- Party ---------- */
+  function renderParty() {
+    var names = partyNames().sort(function (a, b) { return balance(b) - balance(a); });
+    var owed = sum(names, function (n) { var b = balance(n); return b > 0 ? b : 0; });
+    $("due-all").textContent = money(owed);
+    $("due-cnt").textContent = names.filter(function (n) { return balance(n) > 0; }).length + " parties owe us";
+    if (!names.length) { $("party-list").innerHTML = '<div class="empty">No parties yet. A party appears automatically when you create a trip.</div>'; $("party-detail").innerHTML = ""; return; }
+    if (!ui.party || names.indexOf(ui.party) < 0) ui.party = names[0];
+    $("party-list").innerHTML = names.map(function (n) {
+      var b = balance(n);
+      return '<button type="button" class="pbtn" data-act="party" data-name="' + esc(n) + '" aria-pressed="' + (n === ui.party) + '"><span>' + esc(n) + '</span><span class="bal ' + (b > 0 ? "neg" : "pos") + '">' + (b > 0 ? "Receivable " + money(b) : b < 0 ? "Advance " + money(-b) : "Settled") + "</span></button>";
+    }).join("");
+    var all = entries(ui.party);
+    var r = rangeSplit(all, ui.pf, ui.pt, function (x) { return x.debit - x.credit; });
+    var e = r.rows, tb = sum(e, function (x) { return x.debit; }), tc = sum(e, function (x) { return x.credit; });
+    var close = r.opening + tb - tc, ranged = !!(ui.pf || ui.pt);
+    var h = "<h2>" + esc(ui.party) + "’s ledger" + rangeLabel(ui.pf, ui.pt) + "</h2>";
+    lastParty = { name: ui.party, from: ui.pf, to: ui.pt, opening: r.opening, rows: e, tb: tb, tc: tc, close: close };
+    if (ranged) h += '<div class="totals">' + tile("Previous balance", money(r.opening)) + tile("Bill", money(tb)) + tile("Received", money(tc)) + tile("Balance receivable at end of this range", money(close), true) + "</div>";
+    if (!e.length) h += '<div class="empty">' + (all.length ? "No entries in this range." : "This party has no bill or payment yet. A bill is created when a trip is delivered.") + "</div>";
+    else {
+      h += '<div class="scroll"><table><tr><th>Date</th><th>Details</th><th>Bill</th><th>Received</th><th>Receivable</th><th></th></tr>';
+      if (ui.pf) h += "<tr><td></td><td><b>Previous balance</b></td><td></td><td></td><td class='n'><b>" + money(r.opening) + "</b></td><td></td></tr>";
+      h += e.map(function (x) {
+        var key = x.payId ? "p" + x.payId : "";
+        var d = x.payId
+          ? slipLink("p:" + x.payId, "Slip", "Receipt slip") + ' <button type="button" class="link" data-act="edit-row" data-key="' + key + '">Edit</button> <button type="button" class="link dl" data-act="rm-pay" data-id="' + x.payId + '">' + (ui.confirm === "p" + x.payId ? "Sure?" : "Delete") + "</button>"
+          : '<button type="button" class="link" data-act="goedit" data-id="' + x.id + '">Edit</button>';
+        var row = "<tr><td class='n'>" + esc(x.date) + "</td><td>" + esc(x.text) + "</td><td class='n'>" + (x.debit ? money(x.debit) : "") + "</td><td class='n'>" + (x.credit ? money(x.credit) : "") + "</td><td class='n'><b>" + money(x.bal) + "</b></td><td style='white-space:nowrap'>" + d + "</td></tr>";
+        if (x.payId && ui.editRow === key) row += '<tr><td colspan="6">' + payEditForm(x.payId) + "</td></tr>";
+        return row;
+      }).join("");
+      h += "<tr><td></td><td><b>Total</b></td><td class='n'><b>" + money(tb) + "</b></td><td class='n'><b>" + money(tc) + "</b></td><td class='n'><b class='" + (close > 0 ? "neg" : "pos") + "'>" + money(close) + "</b></td><td></td></tr></table></div>";
+    }
+    $("party-detail").innerHTML = h;
+  }
+
+  /* ---------- Expense ledger ---------- */
+  function renderHeads() {
+    var names = headNames();
+    var all = names.map(headSum);
+    var te = sum(all, function (x) { return x.exp; }), tp = sum(all, function (x) { return x.paid; });
+    $("h-exp").textContent = money(te);
+    $("h-paid").textContent = money(tp);
+    $("h-due").textContent = money(te - tp);
+    var hs = $("h-head");
+    if (hs.options.length !== names.length) hs.innerHTML = names.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
+    if (!ui.head) ui.head = names[0];
+    $("head-grid").innerHTML = names.map(function (n, i) {
+      var s = all[i];
+      return '<button type="button" class="hbtn' + (s.n ? "" : " zero") + '" data-act="head" data-name="' + esc(n) + '" aria-pressed="' + (n === ui.head) + '"><span class="hn">' + esc(n) + "</span><small>" + money(s.exp) + "</small>" +
+        '<small class="' + (s.bal > 0 ? "neg" : s.bal < 0 ? "pos" : "") + '">' + (s.n ? (s.bal > 0 ? "Payable " + money(s.bal) : s.bal < 0 ? "Receivable " + money(-s.bal) : "Clear") : "—") + "</small></button>";
+    }).join("");
+    var all2 = headEntries(ui.head);
+    var r = rangeSplit(all2, ui.hf, ui.ht, function (x) { return x.exp - x.paid; });
+    var e = r.rows, te2 = sum(e, function (x) { return x.exp; }), tp2 = sum(e, function (x) { return x.paid; });
+    var close = r.opening + te2 - tp2, ranged = !!(ui.hf || ui.ht);
+    var h = '<h2 style="direction:ltr;text-align:left">' + esc(ui.head) + " - Ledger" + rangeLabel(ui.hf, ui.ht) + "</h2>";
+    if (ranged) h += '<div class="totals">' + tile("Previous balance", money(r.opening)) + tile("Expense", money(te2)) + tile("Paid", money(tp2)) + tile("Balance payable at end of this range", money(close), true) + "</div>";
+    if (!e.length) h += '<div class="empty">' + (all2.length ? "No entries in this range." : "No entries for this expense yet.") + "</div>";
+    else {
+      h += '<div class="scroll"><table><tr><th>Date</th><th>Details</th><th>Expense</th><th>Paid</th><th>Payable</th><th></th></tr>';
+      if (ui.hf) h += "<tr><td></td><td><b>Previous balance</b></td><td></td><td></td><td class='n'><b>" + money(r.opening) + "</b></td><td></td></tr>";
+      h += e.map(function (x) {
+        var key = x.gid ? "g" + x.gid : "t" + x.tid;
+        var d = slipLink(x.gid ? "g:" + x.gid : "t:" + x.tid + ":" + x.head, "Slip", "Slip / bill") + ' <button type="button" class="link" data-act="edit-row" data-key="' + key + '">Edit</button>' +
+          (x.gid ? ' <button type="button" class="link dl" data-act="rm-g" data-id="' + x.gid + '">' + (ui.confirm === "g" + x.gid ? "Sure?" : "Delete") + "</button>" : "");
+        var row = "<tr><td class='n'>" + esc(x.date) + "</td><td>" + esc(x.text) + "</td><td class='n'>" + (x.exp ? money(x.exp) : "") + "</td><td class='n'>" + (x.paid ? money(x.paid) : "") + "</td><td class='n'><b>" + money(x.bal) + "</b></td><td style='white-space:nowrap'>" + d + "</td></tr>";
+        if (ui.editRow === key) row += '<tr><td colspan="6">' + (x.gid ? gEditForm(x.gid) : teEditForm(x.tid, ui.head)) + "</td></tr>";
+        return row;
+      }).join("");
+      h += "<tr><td></td><td><b>Total</b></td><td class='n'><b>" + money(te2) + "</b></td><td class='n'><b>" + money(tp2) + "</b></td><td class='n'><b class='" + (close > 0 ? "neg" : "pos") + "'>" + money(close) + "</b></td><td></td></tr></table></div>";
+      h += '<p class="sub">' + balTxt(close) + " (Trip expenses also appear in this ledger)</p>";
+    }
+    $("head-detail").innerHTML = h;
+  }
+
+  /* ---------- Report ---------- */
+  function matcher() {
+    if (ui.rmode === "range") {
+      var a = ui.rfrom || "0000", b = ui.rto || "9999";
+      return function (d) { return !!d && d >= a && d <= b; };
+    }
+    var pre = ui.rval || today();
+    return function (d) { return inP(d, pre); };
+  }
+  function renderReport() {
+    var mode = ui.rmode, m = matcher();
+    var d = trips.filter(function (x) { return x.stage === "done" && m(x.date); }).sort(function (a, b) { return cmpDate(a.date, b.date) || a.id - b.id; });
+    var notDone = trips.filter(function (t) { return t.stage !== "done" && m(t.date); }).length;
+    var ge = gexp.filter(function (g) { return g.kind !== "pay" && m(g.date); });
+    var rc = pays.filter(function (p) { return p.kind !== "bill" && m(p.date); });
+    var fr = sum(d, function (x) { return x.freight; }), dv = sum(d, function (x) { return x.div || 0; }), xt = sum(d, function (x) { return x.extra || 0; }), te = sum(d, expTotal), tp = fr + dv + xt - te;
+    var gt = sum(ge, function (g) { return g.amt; }), net = tp - gt;
+    var title = mode === "day" ? "Daily report " + ui.rval : mode === "month" ? "Monthly report " + ui.rval : mode === "year" ? "Annual report " + ui.rval : "Report" + rangeLabel(ui.rfrom, ui.rto);
+
+    var h = "<h2>" + esc(title) + "</h2>";
+    h += '<div class="totals">' +
+      '<div class="tot"><div class="lbl">Trip</div><div class="amt">' + d.length + "</div></div>" +
+      '<div class="tot"><div class="lbl">Freight</div><div class="amt">' + money(fr) + "</div></div>" +
+      (dv ? '<div class="tot"><div class="lbl">Diversion</div><div class="amt">' + money(dv) + "</div></div>" : "") +
+      (xt ? '<div class="tot"><div class="lbl">Extra income</div><div class="amt">' + money(xt) + "</div></div>" : "") +
+      '<div class="tot"><div class="lbl">Trip expense</div><div class="amt">' + money(te) + "</div></div>" +
+      '<div class="tot"><div class="lbl">Trip profit</div><div class="amt ' + cls(tp) + '">' + money(tp) + "</div></div>" +
+      '<div class="tot"><div class="lbl">General expenses</div><div class="amt">' + money(gt) + "</div></div>" +
+      '<div class="tot"><div class="lbl">Receipts from parties</div><div class="amt">' + money(sum(rc, function (p) { return p.amt; })) + "</div></div>" +
+      '<div class="tot big"><div class="lbl">Net profit (trip profit − General expenses)</div><div class="amt">' + money(net) + "</div></div></div>";
+    if (notDone) h += '<div class="note">' + notDone + " Trips not yet delivered are not included in this report.</div>";
+
+    h += "<h2>Trips</h2>";
+    h += d.length
+      ? '<div class="scroll"><table style="min-width:680px"><tr><th>Date</th><th>Party</th><th>Route</th><th>Vehicle</th><th>Freight</th><th>Diversion</th><th>Extra</th><th>Expense</th><th>Profit</th></tr>' + d.map(function (t) {
+          var p = profit(t);
+          return "<tr><td class='n'>" + esc(t.date) + "</td><td>" + esc(pname(t)) + "</td><td>" + esc(t.from) + " → " + esc(t.to) + "</td><td class='n'>" + esc(t.veh) + "</td><td class='n'>" + money(t.freight) + "</td><td class='n'>" + money(t.div || 0) + "</td><td class='n'>" + money(t.extra || 0) + "</td><td class='n'>" + money(expTotal(t)) + "</td><td class='n'><b class='" + cls(p) + "'>" + money(p) + "</b></td></tr>";
+        }).join("") + "</table></div>"
+      : '<div class="empty">No completed trips in this period.</div>';
+
+    var byHead = {};
+    d.forEach(function (t) { t.exp.forEach(function (e) { var k = tl(e.type); byHead[k] = (byHead[k] || 0) + e.amt; }); });
+    ge.forEach(function (g) { var k = tl(g.head); byHead[k] = (byHead[k] || 0) + g.amt; });
+    var hk = Object.keys(byHead).sort(function (a, b) { return byHead[b] - byHead[a]; });
+    h += "<h2>Expense details</h2>";
+    h += hk.length
+      ? '<div class="scroll"><table style="min-width:300px"><tr><th>Type</th><th>Amount</th></tr>' + hk.map(function (k) { return "<tr><td style='direction:ltr;text-align:left'>" + esc(k) + "</td><td class='n'>" + money(byHead[k]) + "</td></tr>"; }).join("") + "<tr><td><b>Total</b></td><td class='n'><b>" + money(te + gt) + "</b></td></tr></table></div>"
+      : '<div class="empty">No expenses in this period.</div>';
+
+    var byP = {};
+    d.forEach(function (t) { var p = byP[pname(t)] = byP[pname(t)] || { n: 0, fr: 0, rc: 0 }; p.n++; p.fr += bill(t); });
+    rc.forEach(function (x) { var p = byP[pname(x)] = byP[pname(x)] || { n: 0, fr: 0, rc: 0 }; p.rc += x.amt; });
+    var pk = Object.keys(byP);
+    h += "<h2>By party</h2>";
+    h += pk.length
+      ? '<div class="scroll"><table style="min-width:360px"><tr><th>Party</th><th>Trip</th><th>Freight + diversion</th><th>Received</th></tr>' + pk.map(function (k) { var p = byP[k]; return "<tr><td>" + esc(k) + "</td><td class='n'>" + p.n + "</td><td class='n'>" + money(p.fr) + "</td><td class='n'>" + money(p.rc) + "</td></tr>"; }).join("") + "</table></div>"
+      : '<div class="empty">Nothing in this period.</div>';
+
+    var byV = {};
+    d.forEach(function (t) { var v = byV[t.veh] = byV[t.veh] || { n: 0, fr: 0, ex: 0 }; v.n++; v.fr += earn(t); v.ex += expTotal(t); });
+    var vk = Object.keys(byV);
+    h += "<h2>By vehicle</h2>";
+    h += vk.length
+      ? '<div class="scroll"><table style="min-width:400px"><tr><th>Vehicle</th><th>Trip</th><th>Freight + extra</th><th>Expense</th><th>Profit</th></tr>' + vk.map(function (k) { var v = byV[k], p = v.fr - v.ex; return "<tr><td class='n'>" + esc(k) + "</td><td class='n'>" + v.n + "</td><td class='n'>" + money(v.fr) + "</td><td class='n'>" + money(v.ex) + "</td><td class='n'><b class='" + cls(p) + "'>" + money(p) + "</b></td></tr>"; }).join("") + "</table></div>"
+      : '<div class="empty">No vehicle ran in this period.</div>';
+    $("r-body").innerHTML = h;
+  }
+
+  function setReportInput() {
+    var el = $("r-val"), t = today(), isRange = ui.rmode === "range";
+    $("r-valw").hidden = isRange; $("r-fromw").hidden = !isRange; $("r-tow").hidden = !isRange;
+    if (isRange) {
+      ui.rfrom = daysAgo(6); ui.rto = t;
+      $("r-from").value = ui.rfrom; $("r-to").value = ui.rto;
+      return;
+    }
+    el.type = ui.rmode === "day" ? "date" : ui.rmode === "month" ? "month" : "number";
+    ui.rval = ui.rmode === "day" ? t : ui.rmode === "month" ? t.slice(0, 7) : t.slice(0, 4);
+    el.value = ui.rval;
+    $("r-vlbl").textContent = ui.rmode === "day" ? "Date" : ui.rmode === "month" ? "Month" : "Year";
+  }
+
+  function lists() {
+    $("dl-party").innerHTML = partyNames().filter(function (n) { return n !== NOPARTY; }).map(function (n) { return '<option value="' + esc(n) + '">'; }).join("");
+    var v = {}; trips.forEach(function (t) { if (t.veh) v[t.veh] = 1; });
+    $("dl-veh").innerHTML = Object.keys(v).map(function (n) { return '<option value="' + esc(n) + '">'; }).join("");
+  }
+
+  function renderUsers() {
+    var n = me ? me.user : "";
+    $("u-name").textContent = n;
+    $("u-av").textContent = n ? n.charAt(0).toUpperCase() : "?";
+    $("u-role").textContent = role === "staff" ? "Staff" : "Admin";
+    $("acct-info").textContent = fbOn() ? "Connected to server" : "Only on this phone (not connected to the server)";
+  }
+  function tcode(t) { return "#" + String(t.id).slice(-4); }
+  function tlabel(t) { return tcode(t) + " · " + t.date + " · " + t.from + " → " + t.to + " · " + t.veh; }
+  function addToTrip(x) {
+    var t = find(x.tid); if (!t) return false;
+    t.exp = t.exp || [];
+    var e = t.exp.filter(function (q) { return q.type === x.head || tl(q.type) === x.head; })[0], conflict = false;
+    if (e) { conflict = !!e.udhar !== !!x.udhar; e.amt = (Number(e.amt) || 0) + x.amt; if (x.slips && x.slips.length) e.slips = (e.slips || []).concat(x.slips); }
+    else { var ne = { type: x.head, amt: x.amt, udhar: !!x.udhar }; if (x.slips && x.slips.length) ne.slips = x.slips.slice(); t.exp.push(ne); }
+    (t.sx = t.sx || []).push({ sk: x.sk || "", head: x.head, amt: x.amt, udhar: !!x.udhar, by: x.by || "", date: x.date, note: x.note || "", conflict: conflict, slips: x.slips || [] });
+    return true;
+  }
+  function openTrips() { var cut = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10); return trips.filter(function (t) { return t.stage !== "done" || (t.date || "") >= cut; }).sort(function (a, b) { return cmpDate(b.date, a.date) || b.id - a.id; }); }
+  var fbTrips = [];
+  function renderStaff() {
+    var tsel = $("s-trip"), cur = tsel.value, opts = fbOn() ? fbTrips : openTrips().map(function (t) { return { id: t.id, label: tlabel(t) }; });
+    tsel.innerHTML = '<option value="">— Select trip —</option>' + opts.map(function (o) { return '<option value="' + esc(String(o.id)) + '">' + esc(o.label) + "</option>"; }).join("") + '<option value="none">General expense (not for any trip)</option>';
+    tsel.value = cur && Array.prototype.some.call(tsel.options, function (o) { return o.value === cur; }) ? cur : "";
+    var names = headNames(), hs = $("s-head");
+    if (hs.options.length !== names.length) hs.innerHTML = names.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
+    var rows = [];
+    if (fbOn()) { rows = fbRows.slice(); outbox().forEach(function (o) { rows.push({ date: o.date, id: o.ts, head: tl(o.head), amt: o.amt, udhar: o.kind === "udhar", text: (o.note || "") + " · (pending to send)" }); }); }
+    else gexp.forEach(function (g) { if (g.kind !== "pay") rows.push({ date: g.date, id: g.id, head: tl(g.head), amt: g.amt, udhar: g.kind === "udhar", text: (g.note || "") + (g.by ? " · " + g.by : "") }); });
+    if (!fbOn()) trips.forEach(function (t) { t.exp.forEach(function (x) { rows.push({ date: t.date, id: t.id, head: tl(x.type), amt: x.amt, udhar: !!x.udhar, text: t.from + " → " + t.to + " · " + t.veh }); }); });
+    rows.sort(function (a, b) { return cmpDate(b.date, a.date) || b.id - a.id; });
+    var shown = rows.slice(0, 150);
+    $("staff-list").innerHTML = shown.length
+      ? '<div class="scroll"><table style="min-width:340px"><tr><th>Date</th><th>Type</th><th>Amount</th><th>Details</th></tr>' + shown.map(function (r) {
+          return "<tr><td class='n'>" + esc(r.date) + "</td><td style='direction:ltr;text-align:left'>" + esc(r.head) + "</td><td class='n'>" + money(r.amt) + (r.udhar ? " <small>(Credit)</small>" : "") + "</td><td>" + esc(r.text) + "</td></tr>";
+        }).join("") + "</table></div>" + (rows.length > shown.length ? '<p class="sub">Showing the latest 150 expenses.</p>' : "")
+      : '<div class="empty">No expense recorded yet.</div>';
+  }
+
+  function updCarry() {
+    var el = $("t-carry"); if (!el) return;
+    var d = $("t-drv").value, v = $("t-veh").value, q = prevTrip(d, v, 0);
+    if (!q) { el.hidden = true; el.textContent = ""; return; }
+    var c = cashLeft(q);
+    el.hidden = false;
+    el.textContent = "Previous balance with " + (q.drv || q.veh) + " (last trip " + q.from + " \u2192 " + q.to + "): " + money(c) + (c < 0 ? " - will be deducted from the new cash" : " - will be added to the new cash") + ".";
+  }
+  function render() {
+    updCarry();
+    lists();
+    if (isStaff()) { if (ui.tab !== "users") ui.tab = "staff"; } else if (ui.tab === "staff") ui.tab = "trips";
+    ["trips", "done", "party", "heads", "accts", "report", "users", "staff"].forEach(function (k) { $("p-" + k).hidden = ui.tab !== k; });
+    document.querySelector(".tabs").classList.toggle("two", isStaff());
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.hidden = isStaff() ? !(b.dataset.tab === "staff" || b.dataset.tab === "users") : b.dataset.tab === "staff"; });
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === ui.tab)); });
+    if (ui.tab === "trips" || ui.tab === "done") renderTrips();
+    else if (ui.tab === "party") renderParty();
+    else if (ui.tab === "heads") renderHeads();
+    else if (ui.tab === "staff") renderStaff();
+    else if (ui.tab === "users") renderUsers();
+    else if (ui.tab === "accts") renderAccts();
+    else renderReport();
+  }
+  function find(id) { return trips.filter(function (t) { return t.id === Number(id); })[0]; }
+
+
+  /* ---------- Bank / cash accounts ---------- */
+  function acctById(id) { return accts.filter(function (a) { return a.id === id; })[0]; }
+  function aDelta(x) { return x.kind === "in" ? x.amt : -x.amt; }
+  function acctBal(id) { var a = acctById(id); return (a ? Number(a.opening) || 0 : 0) + sum(aent.filter(function (x) { return x.acct === id; }), aDelta); }
+  function acctEntries(id) {
+    var e = aent.filter(function (x) { return x.acct === id; }).sort(function (a, b) { return cmpDate(a.date, b.date) || a.id - b.id; });
+    var run = 0, ac = acctById(id); run = ac ? Number(ac.opening) || 0 : 0;
+    e.forEach(function (x) { run += aDelta(x); x.bal = run; });
+    return e;
+  }
+  function acctModel() {
+    var ac = acctById(ui.acct); if (!ac) return null;
+    var all = acctEntries(ac.id), op0 = Number(ac.opening) || 0;
+    var rows = [], opening = op0;
+    all.forEach(function (x) { if (ui.af && x.date < ui.af) opening += aDelta(x); else if (!ui.at || x.date <= ui.at) rows.push(x); });
+    var ti = sum(rows, function (x) { return x.kind === "in" ? x.amt : 0; }), to = sum(rows, function (x) { return x.kind === "out" ? x.amt : 0; });
+    return { ac: ac, from: ui.af, to: ui.at, opening: opening, rows: rows, ti: ti, to: to, close: opening + ti - to };
+  }
+  function aRowText(x) { return (x.xid ? (x.kind === "out" ? "Transfer to " : "Transfer from ") + ((acctById(x.peer) || {}).name || "account") : (x.kind === "in" ? "Deposit" : "Withdrawal")) + (x.note ? " - " + x.note : ""); }
+  function aEditForm(x) {
+    return '<form class="rowform" data-form="ac-edit-row" data-id="' + x.id + '">' +
+      '<label>Date<input name="date" type="date" required value="' + esc(x.date) + '"></label>' +
+      '<label>Amount<input name="amt" type="number" min="1" required value="' + x.amt + '"></label>' +
+      (x.xid ? "" : '<label>Type<select name="kind"><option value="in"' + (x.kind === "in" ? " selected" : "") + '>Deposit</option><option value="out"' + (x.kind === "out" ? " selected" : "") + '>Withdrawal</option></select></label>') +
+      '<label class="full">Details<input name="note" value="' + esc(x.note || "") + '"></label>' +
+      '<button class="primary" type="submit">Save</button><button type="button" data-act="cancel-edit">Cancel</button></form>';
+  }
+  function renderAccts() {
+    var tot = sum(accts, function (a) { return acctBal(a.id); });
+    $("ac-total").textContent = money(tot);
+    var optsHtml = accts.map(function (a) { return '<option value="' + a.id + '">' + esc(a.name) + "</option>"; }).join("");
+    var cur = $("ae-acct").value, curTo = $("ae-to").value;
+    $("ae-acct").innerHTML = optsHtml; $("ae-to").innerHTML = optsHtml;
+    if (ui.acct && acctById(ui.acct)) $("ae-acct").value = String(ui.acct); else if (cur) $("ae-acct").value = cur;
+    if (curTo) $("ae-to").value = curTo;
+    $("ae-tow").hidden = $("ae-kind").value !== "xfer";
+    if (!accts.length) { $("ac-grid").innerHTML = '<div class="empty" style="grid-column:1/-1">No accounts yet. Add your first bank account or cash account above.</div>'; $("ac-detail").innerHTML = ""; return; }
+    if (!acctById(ui.acct)) ui.acct = accts[0].id;
+    $("ac-grid").innerHTML = accts.map(function (a) {
+      var b = acctBal(a.id);
+      return '<button type="button" class="hbtn" data-act="ac-sel" data-id="' + a.id + '" aria-pressed="' + (a.id === ui.acct) + '"><span class="hn">' + esc(a.name) + "</span><small>" + (a.type === "cash" ? "Cash" : "Bank") + '</small><small class="' + (b < 0 ? "neg" : "pos") + '">' + money(b) + "</small></button>";
+    }).join("");
+    var m = acctModel();
+    var h = '<h2 style="direction:ltr">' + esc(m.ac.name) + " &middot; ledger" + esc(rangeEn(m.from, m.to)) + "</h2>";
+    h += '<div class="totals">' + tile("Opening balance", money(m.opening)) + tile("Total in", money(m.ti)) + tile("Total out", money(m.to)) + tile("Balance", money(m.close), true) + "</div>";
+    h += '<div class="actions"><button type="button" data-act="ac-edit-acct">' + (ui.editAcct ? "Close" : "Edit account") + '</button><button type="button" class="del" data-act="ac-del-acct">' + (ui.confirm === "acct" + m.ac.id ? "Sure? Delete account and its entries" : "Delete account") + "</button></div>";
+    if (ui.editAcct) h += '<form class="rowform" data-form="ac-edit-acct"><label>Account name<input name="name" required value="' + esc(m.ac.name) + '"></label><label>Opening balance (Rs)<input name="open" type="number" value="' + (Number(m.ac.opening) || 0) + '"></label><button class="primary" type="submit">Save</button><button type="button" data-act="ac-edit-acct">Cancel</button></form>';
+    if (!m.rows.length && !m.opening) h += '<div class="empty">No entries yet.</div>';
+    else {
+      h += '<div class="scroll"><table style="direction:ltr"><tr><th>Date</th><th>Details</th><th>In</th><th>Out</th><th>Balance</th><th></th></tr>';
+      h += "<tr><td></td><td><b>Opening balance</b></td><td></td><td></td><td class='n'><b>" + money(m.opening) + "</b></td><td></td></tr>";
+      h += m.rows.map(function (x) {
+        var key = "a" + x.id;
+        var row = "<tr><td class='n'>" + esc(x.date) + "</td><td>" + esc(aRowText(x)) + "</td><td class='n'>" + (x.kind === "in" ? money(x.amt) : "") + "</td><td class='n'>" + (x.kind === "out" ? money(x.amt) : "") + "</td><td class='n'><b class='" + (x.bal < 0 ? "neg" : "") + "'>" + money(x.bal) + "</b></td><td style='white-space:nowrap'>" +
+          '<button type="button" class="link" data-act="ac-edit-row" data-key="' + key + '">Edit</button> <button type="button" class="link dl" data-act="ac-del-row" data-id="' + x.id + '">' + (ui.confirm === key ? "Sure?" : "Delete") + "</button></td></tr>";
+        if (ui.editRow === key) row += '<tr><td colspan="6">' + aEditForm(x) + "</td></tr>";
+        return row;
+      }).join("");
+      h += "<tr><td></td><td><b>Total</b></td><td class='n'><b>" + money(m.ti) + "</b></td><td class='n'><b>" + money(m.to) + "</b></td><td class='n'><b>" + money(m.close) + "</b></td><td></td></tr></table></div>";
+    }
+    $("ac-detail").innerHTML = h;
+  }
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("button[data-act^=ac-]");
+    if (!b || isStaff()) return;
+    var act = b.dataset.act;
+    if (act === "ac-sel") { ui.acct = Number(b.dataset.id); ui.editRow = null; ui.editAcct = false; }
+    else if (act === "ac-clear") { ui.af = ""; ui.at = ""; $("ac-from").value = ""; $("ac-to").value = ""; }
+    else if (act === "ac-edit-row") { ui.editRow = ui.editRow === b.dataset.key ? null : b.dataset.key; }
+    else if (act === "ac-edit-acct") { ui.editAcct = !ui.editAcct; }
+    else if (act === "ac-del-row") {
+      var k = "a" + b.dataset.id;
+      if (ui.confirm === k) {
+        var x = aent.filter(function (q) { return String(q.id) === b.dataset.id; })[0];
+        aent = aent.filter(function (q) { return x && x.xid ? q.xid !== x.xid : String(q.id) !== b.dataset.id; });
+        ui.confirm = null; save();
+      } else ui.confirm = k;
+    } else if (act === "ac-del-acct") {
+      var ka = "acct" + ui.acct;
+      if (ui.confirm === ka) {
+        var gone = ui.acct; var xids = {};
+        aent.forEach(function (q) { if (q.acct === gone && q.xid) xids[q.xid] = 1; });
+        aent = aent.filter(function (q) { return q.acct !== gone && !(q.xid && xids[q.xid] && q.peer === gone); });
+        accts = accts.filter(function (a) { return a.id !== gone; }); ui.acct = null; ui.confirm = null; save();
+      } else ui.confirm = ka;
+    } else return;
+    renderAccts();
+  });
+  document.addEventListener("change", function (ev) {
+    var id = ev.target.id;
+    if (id === "ae-kind") { $("ae-tow").hidden = ev.target.value !== "xfer"; }
+    else if (id === "ac-from") { ui.af = ev.target.value; renderAccts(); }
+    else if (id === "ac-to") { ui.at = ev.target.value; renderAccts(); }
+  });
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target, id = f.id, df = f.dataset ? f.dataset.form : "";
+    if (isStaff() || !(id === "acct-form" || id === "aent-form" || df === "ac-edit-row" || df === "ac-edit-acct")) return;
+    if (id === "acct-form") {
+      var a = { id: Date.now(), name: $("ac-name").value.trim(), type: $("ac-type").value, opening: Number($("ac-open").value) || 0 };
+      if (!a.name) return;
+      accts.push(a); ui.acct = a.id; f.reset(); save(); renderAccts();
+    } else if (id === "aent-form") {
+      var src = Number($("ae-acct").value), amt = Number($("ae-amt").value) || 0, kind = $("ae-kind").value, date = $("ae-date").value || today(), note = $("ae-note").value.trim();
+      if (!src || amt <= 0) { toast("Add an account first and enter an amount."); return; }
+      var nid = Date.now();
+      if (kind === "xfer") {
+        var dst = Number($("ae-to").value);
+        if (!dst || dst === src) { toast("Choose a different account to transfer to."); return; }
+        aent.push({ id: nid, acct: src, kind: "out", amt: amt, date: date, note: note, xid: nid, peer: dst });
+        aent.push({ id: nid + 1, acct: dst, kind: "in", amt: amt, date: date, note: note, xid: nid, peer: src });
+      } else aent.push({ id: nid, acct: src, kind: kind, amt: amt, date: date, note: note });
+      ui.acct = src; $("ae-amt").value = ""; $("ae-note").value = ""; save(); renderAccts(); toast("Entry saved.");
+    } else if (df === "ac-edit-row") {
+      var x = aent.filter(function (q) { return String(q.id) === f.dataset.id; })[0];
+      if (x) {
+        var upd = function (q) { q.amt = Number(f.elements.amt.value) || q.amt; q.date = f.elements.date.value || q.date; q.note = f.elements.note.value.trim(); };
+        if (x.xid) aent.forEach(function (q) { if (q.xid === x.xid) upd(q); }); else { upd(x); if (f.elements.kind) x.kind = f.elements.kind.value; }
+        ui.editRow = null; save(); renderAccts();
+      }
+    } else if (df === "ac-edit-acct") {
+      var ac = acctById(ui.acct);
+      if (ac) { ac.name = f.elements.name.value.trim() || ac.name; ac.opening = Number(f.elements.open.value) || 0; ui.editAcct = false; save(); renderAccts(); }
+    }
+  });
+
+  /* ---------- Share / PDF (English reports with logo) ---------- */
+  var CO_EN = "NEW CHAUDHRY CARGO SERVICE", CO_UR = "New Chaudhry Cargo Service";
+  var lastReport = null, lastParty = null, toastTimer = null;
+  var LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="62" height="62"><rect x="2" y="2" width="68" height="68" rx="19" fill="#f2b632"/><rect x="27" y="17" width="35" height="27" rx="4" fill="#17463a"/><text x="44.5" y="36" font-size="15" font-weight="800" text-anchor="middle" font-family="Georgia,serif" fill="#f2b632">NC</text><path d="M25 25 H15 L8 35 V44 H25 Z" fill="#17463a"/><path d="M21.5 28.5 H16.8 L12.4 34.5 H21.5 Z" fill="#f2b632"/><rect x="8" y="43" width="54" height="5" rx="2.5" fill="#17463a"/><circle cx="20" cy="52" r="7.5" fill="#17463a"/><circle cx="20" cy="52" r="3.6" fill="#f2b632"/><circle cx="50" cy="52" r="7.5" fill="#17463a"/><circle cx="50" cy="52" r="3.6" fill="#f2b632"/></svg>';
+  function hasNative(name) { return !!(window.AndroidBridge && window.AndroidBridge[name] !== undefined); }
+  function toast(msg) {
+    var el = $("toast"); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.hidden = true; }, 4000);
+  }
+  function showSheet(text) { var ta = $("sheet-text"); ta.value = text; $("sheet").hidden = false; try { ta.focus(); ta.select(); } catch (e) {} }
+  function copyPlain(text, done) {
+    var fb = function () {
+      var ta = $("sheet-text"); ta.value = text; ta.select();
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      done(ok);
+    };
+    try { navigator.clipboard.writeText(text).then(function () { done(true); }, fb); } catch (e) { fb(); }
+  }
+  function copyText(text) {
+    if (hasNative("copy")) { AndroidBridge.copy(text); toast("Copied. Paste it in WhatsApp."); return; }
+    copyPlain(text, function (ok) { if (ok) toast("Copied. Paste it in WhatsApp."); else showSheet(text); });
+  }
+  function downloadFile(name, mime, content) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], { type: mime + ";charset=utf-8" }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  }
+  function printWeb(title, html) {
+    var fr = document.createElement("iframe");
+    fr.setAttribute("aria-hidden", "true");
+    fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    document.body.appendChild(fr);
+    var d = fr.contentWindow.document; d.open(); d.write(html); d.close();
+    var old = document.title;
+    setTimeout(function () {
+      try {
+        document.title = title;
+        fr.contentWindow.focus(); fr.contentWindow.print();
+        toast("In the print window choose 'Save as PDF'.");
+      } catch (e) {
+        downloadFile(title + ".html", "text/html", html);
+        toast("Report file downloaded. Open it and use Print > Save as PDF.");
+      }
+      setTimeout(function () { document.title = old; }, 1500);
+      setTimeout(function () { if (fr.parentNode) fr.parentNode.removeChild(fr); }, 120000);
+    }, 700);
+  }
+  function pn(x) { var n = pname(x); return n === NOPARTY ? "Cash / no name" : n; }
+  function rangeEn(from, to) { return from || to ? " (" + (from || "start") + " to " + (to || "today") + ")" : ""; }
+  function arrow(t) { return t.from + " → " + t.to; }
+  function balEn(b, payable) { return b === 0 ? "Settled" : (b > 0) === !!payable ? "Payable " + money(Math.abs(b)) : "Receivable " + money(Math.abs(b)); }
+  var STAGE_EN = { wait: "Awaiting loading", load: "In transit", done: "Delivered" };
+  var KIND_EN = { cash: "Cash expense", udhar: "Credit expense", pay: "Payment made" };
+
+  function docHtml(title, body, kind) {
+    return '<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap"><style>' +
+      '@page{size:A4;margin:12mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'body{font-family:"Segoe UI",Arial,"Noto Naskh Arabic",Tahoma,sans-serif;color:#1b1f1d;font-size:12.5px;line-height:1.55;margin:0;padding:10px}' +
+      '.hd{display:flex;align-items:center;gap:14px;background:#17463a;color:#fff;border-radius:12px;padding:12px 16px;border-bottom:5px solid #f2b632}' +
+      '.hd .co{flex:1}.hd .en{font-size:17px;font-weight:800;letter-spacing:.06em}.hd .ur{font-size:15px;color:#f2d98b;direction:rtl;text-align:left;margin-top:2px}' +
+      '.hd .meta{text-align:left;font-size:11.5px;opacity:.9}.hd .meta b{display:block;font-size:14px;color:#f2b632}' +
+      'h2{font-size:14px;margin:18px 0 6px;color:#17463a;border-left:4px solid #f2b632;padding-left:8px}' +
+      'table{border-collapse:collapse;width:100%;margin:4px 0 8px}th{background:#17463a;color:#fff;font-weight:600;text-align:left;padding:6px 8px;font-size:11.5px}' +
+      'td{padding:5px 8px;border-bottom:1px solid #d9ded9;text-align:left;unicode-bidi:plaintext;vertical-align:top}tr:nth-child(even) td{background:#f5f8f5}' +
+      'td.n,th.n{text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}tr.tot td{font-weight:700;background:#e4efe9!important;border-top:2px solid #17463a}' +
+      '.kv th{background:#eef3ef;color:#17463a;width:34%}' +
+      '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.box{border:1px solid #cfd8d2;border-left:4px solid #1f5c4a;border-radius:8px;padding:6px 10px;background:#fff}' +
+      '.box .l{font-size:11px;color:#5b665f}.box .v{font-size:15px;font-weight:800}.box.big{grid-column:1/-1;background:#17463a;color:#fff;border-color:#17463a}.box.big .l{color:#cfe3d9}.box.big .v{font-size:19px}' +
+      '.neg{color:#a8332b}.pos{color:#1f5c4a}.note{background:#fbeccd;color:#7a4b00;border-radius:8px;padding:6px 10px;margin:6px 0}' +
+      '.empty{color:#6b756f;font-style:italic;padding:4px 0}.ft{margin-top:22px;border-top:1px solid #cfd8d2;padding-top:6px;color:#6b756f;font-size:10.5px;display:flex;justify-content:space-between}' +
+      '</style></head><body><div class="hd">' + LOGO + '<div class="co"><div class="en">' + CO_EN + '</div><div class="ur">' + CO_UR + '</div></div>' +
+      '<div class="meta"><b>' + esc(kind || title) + '</b>Generated ' + today() + '</div></div>' + body +
+      '<div class="ft"><span>' + CO_EN + '</span><span>Generated ' + today() + '</span></div></body></html>';
+  }
+  function box(l, v, cl, big) { return '<div class="box' + (big ? " big" : "") + '"><div class="l">' + l + '</div><div class="v ' + (cl || "") + '">' + v + "</div></div>"; }
+  function tbl(head, rows, numCols) {
+    return "<table><tr>" + head.map(function (h, i) { return "<th" + (numCols.indexOf(i) >= 0 ? ' class="n"' : "") + ">" + h + "</th>"; }).join("") + "</tr>" + rows.join("") + "</table>";
+  }
+  function tr(cells, numCols, cls2) { return "<tr" + (cls2 ? ' class="' + cls2 + '"' : "") + ">" + cells.map(function (c, i) { return "<td" + (numCols.indexOf(i) >= 0 ? ' class="n"' : "") + ">" + c + "</td>"; }).join("") + "</tr>"; }
+
+  /* trip */
+  function tripTextEn(t, full) {
+    var L = ["*" + CO_EN + "*", full ? "TRIP REPORT" : "TRIP BILL", "Trip " + tcode(t), "", "Date: " + t.date, "Party: " + pn(t), "Goods: " + t.goods, "Route: " + arrow(t), "Vehicle: " + t.veh + (t.drv ? " | Driver: " + t.drv : ""), "Freight: " + money(t.freight)];
+    if (t.div) L.push("Diversion / extra km" + (t.divNote ? " (" + t.divNote + ")" : "") + ": " + money(t.div), "Total bill: " + money(bill(t)));
+    if (t.extra) L.push("Extra income (not in party ledger): " + money(t.extra) + (t.extraNote ? " - " + t.extraNote : ""));
+    if (full) {
+      if (t.exp.length) { L.push("", "Expenses:"); t.exp.forEach(function (e) { L.push("- " + tl(e.type) + ": " + money(e.amt) + (e.udhar ? " (credit)" : "")); }); }
+      L.push("Total expenses: " + money(expTotal(t)), "Profit: " + money(profit(t)));
+      var cs = cashSpent(t);
+      if ((t.cash || 0) > 0 || cs > 0 || t.carry) L.push("", "Previous balance: " + money(t.carry || 0), "New cash given to driver" + (t.cashMode === "bank" ? " (transfer)" : " (cash)") + ": " + money(t.cash || 0), "Cash expenses: " + money(cs), "Cash left: " + money(cashLeft(t))); if (t.cashNote) L.push("Cash remarks: " + t.cashNote);
+    }
+    return L.join("\n");
+  }
+  function tripBodyEn(t, full) {
+    var kv = function (k, v) { return "<tr><th>" + k + "</th><td>" + v + "</td></tr>"; };
+    var h = "<h2>" + (full ? "Trip Report" : "Trip Bill") + " &middot; " + tcode(t) + '</h2><table class="kv">' + kv("Date", esc(t.date)) + kv("Party", esc(pn(t))) + kv("Goods", esc(t.goods)) + kv("Route", esc(arrow(t))) + kv("Vehicle", esc(t.veh) + (t.drv ? " &middot; Driver: " + esc(t.drv) : "")) + kv("Status", STAGE_EN[t.stage]) + kv("Freight", "<b>" + money(t.freight) + "</b>") + (t.div ? kv("Diversion / extra km", "<b>" + money(t.div) + "</b>" + (t.divNote ? " &middot; " + esc(t.divNote) : "")) + kv("Total bill", "<b>" + money(bill(t)) + "</b>") : "") + (t.extra ? kv("Extra income", "<b>" + money(t.extra) + "</b>" + (t.extraNote ? " &middot; " + esc(t.extraNote) : "")) : "") + "</table>";
+    if (full) {
+      h += "<h2>Expenses</h2>" + (t.exp.length ? tbl(["Head", "Type", "Amount"], t.exp.map(function (e) { return tr([esc(tl(e.type)), e.udhar ? "Credit" : "Cash", money(e.amt)], [2]); }).concat([tr(["Total", "", money(expTotal(t))], [2], "tot")]), [2]) : '<div class="empty">No expenses recorded.</div>');
+      var cs = cashSpent(t), pr = profit(t);
+      h += '<div class="grid">' + box("Freight", money(t.freight)) + (t.div ? box("Diversion", money(t.div)) : "") + (t.extra ? box("Extra income", money(t.extra)) : "") + box("Expenses", money(expTotal(t))) + box("Profit", money(pr), cls(pr)) + "</div>";
+      if ((t.cash || 0) > 0 || cs > 0 || t.carry) h += "<h2>Driver Cash</h2>" + '<div class="grid">' + box("Previous balance", money(t.carry || 0), cls(t.carry || 0)) + box("New cash" + (t.cashMode === "bank" ? " (transfer)" : " (cash)"), money(t.cash || 0)) + box("Cash expenses", money(cs)) + box("Cash left", money(cashLeft(t)), cls(cashLeft(t))) + "</div>" + (t.cashNote ? "<p><b>Cash remarks:</b> " + esc(t.cashNote) + "</p>" : "");
+    }
+    return h;
+  }
+
+  /* party ledger */
+  function partyModel() {
+    var all = entries(ui.party), r = rangeSplit(all, ui.pf, ui.pt, function (x) { return x.debit - x.credit; });
+    var tb = sum(r.rows, function (x) { return x.debit; }), tc = sum(r.rows, function (x) { return x.credit; });
+    return { name: ui.party === NOPARTY ? "Cash / no name" : ui.party, from: ui.pf, to: ui.pt, opening: r.opening, rows: r.rows, tb: tb, tc: tc, close: r.opening + tb - tc };
+  }
+  function partyRowText(x) { return x.payKind === "bill" ? "Old bill" + ((x.text || "").replace(/^Old bill\s*/, "") ? " - " + x.text.replace(/^Old bill\s*/, "") : "") : x.payId ? "Payment received" + ((x.text || "").replace(/^Received\s*/, "") ? " - " + x.text.replace(/^Received\s*/, "") : "") : String(x.text).replace(/ → /g, " → "); }
+  function partyTextEn(p) {
+    var L = ["*" + CO_EN + "*", "PARTY LEDGER: " + p.name + rangeEn(p.from, p.to), ""];
+    if (p.from) L.push("Opening balance: " + money(p.opening));
+    p.rows.forEach(function (x) { L.push(x.date + " | " + partyRowText(x) + " | " + (x.debit ? "Bill " + money(x.debit) : "Received " + money(x.credit)) + " | Balance " + money(x.bal)); });
+    L.push("", "Total billed: " + money(p.tb), "Total received: " + money(p.tc), "Balance receivable: " + money(p.close));
+    return L.join("\n");
+  }
+  function partyBodyEn(p) {
+    var rows = [];
+    if (p.from) rows.push(tr(["", "<b>Opening balance</b>", "", "", money(p.opening)], [2, 3, 4]));
+    p.rows.forEach(function (x) { rows.push(tr([esc(x.date), esc(partyRowText(x)), x.debit ? money(x.debit) : "", x.credit ? money(x.credit) : "", money(x.bal)], [2, 3, 4])); });
+    rows.push(tr(["", "Total", money(p.tb), money(p.tc), money(p.close)], [2, 3, 4], "tot"));
+    return "<h2>Party Ledger: " + esc(p.name) + esc(rangeEn(p.from, p.to)) + "</h2>" + '<div class="grid">' + box("Total billed", money(p.tb)) + box("Total received", money(p.tc)) + box("Balance receivable", money(p.close), p.close > 0 ? "neg" : "pos") + "</div>" +
+      (p.rows.length || p.from ? tbl(["Date", "Details", "Bill", "Received", "Balance"], rows, [2, 3, 4]) : '<div class="empty">No entries in this period.</div>');
+  }
+
+  /* expense-head ledger */
+  function headModel() {
+    var all = headEntries(ui.head), r = rangeSplit(all, ui.hf, ui.ht, function (x) { return x.exp - x.paid; });
+    var te = sum(r.rows, function (x) { return x.exp; }), tp = sum(r.rows, function (x) { return x.paid; });
+    return { name: ui.head, from: ui.hf, to: ui.ht, opening: r.opening, rows: r.rows, te: te, tp: tp, close: r.opening + te - tp };
+  }
+  function headRowText(x) {
+    if (x.tid) { var t = find(x.tid); return t ? pn(t) + " | " + arrow(t) + " | " + t.veh + (x.exp && !x.paid ? " (credit)" : "") : "Trip expense"; }
+    var g = gexp.filter(function (q) { return q.id === x.gid; })[0];
+    return g ? KIND_EN[g.kind] + (g.note ? " - " + g.note : "") + (g.by ? " (staff: " + g.by + ")" : "") : "Entry";
+  }
+  function headTextEn(h) {
+    var L = ["*" + CO_EN + "*", "EXPENSE LEDGER: " + h.name + rangeEn(h.from, h.to), ""];
+    if (h.from) L.push("Opening balance: " + money(h.opening));
+    h.rows.forEach(function (x) { L.push(x.date + " | " + headRowText(x) + " | " + (x.exp ? "Expense " + money(x.exp) : "") + (x.exp && x.paid ? " / " : "") + (x.paid ? "Paid " + money(x.paid) : "") + " | Balance " + money(x.bal)); });
+    L.push("", "Total expense: " + money(h.te), "Total paid: " + money(h.tp), balEn(h.close, true));
+    return L.join("\n");
+  }
+  function headBodyEn(h) {
+    var rows = [];
+    if (h.from) rows.push(tr(["", "<b>Opening balance</b>", "", "", money(h.opening)], [2, 3, 4]));
+    h.rows.forEach(function (x) { rows.push(tr([esc(x.date), esc(headRowText(x)), x.exp ? money(x.exp) : "", x.paid ? money(x.paid) : "", money(x.bal)], [2, 3, 4])); });
+    rows.push(tr(["", "Total", money(h.te), money(h.tp), money(h.close)], [2, 3, 4], "tot"));
+    return "<h2>Expense Ledger: " + esc(h.name) + esc(rangeEn(h.from, h.to)) + "</h2>" + '<div class="grid">' + box("Total expense", money(h.te)) + box("Total paid", money(h.tp)) + box("Payable", money(h.close), h.close > 0 ? "neg" : "pos") + "</div>" +
+      (h.rows.length || h.from ? tbl(["Date", "Details", "Expense", "Paid", "Balance"], rows, [2, 3, 4]) : '<div class="empty">No entries in this period.</div>');
+  }
+
+  function acctTextEn(m) {
+    var L = ["*" + CO_EN + "*", "ACCOUNT LEDGER: " + m.ac.name + rangeEn(m.from, m.to), ""];
+    L.push("Opening balance: " + money(m.opening));
+    m.rows.forEach(function (x) { L.push(x.date + " | " + aRowText(x) + " | " + (x.kind === "in" ? "In " : "Out ") + money(x.amt) + " | Balance " + money(x.bal)); });
+    L.push("", "Total in: " + money(m.ti), "Total out: " + money(m.to), "Closing balance: " + money(m.close));
+    return L.join("\n");
+  }
+  function acctBodyEn(m) {
+    var rows = [tr(["", "<b>Opening balance</b>", "", "", money(m.opening)], [2, 3, 4])];
+    m.rows.forEach(function (x) { rows.push(tr([esc(x.date), esc(aRowText(x)), x.kind === "in" ? money(x.amt) : "", x.kind === "out" ? money(x.amt) : "", money(x.bal)], [2, 3, 4])); });
+    rows.push(tr(["", "Total", money(m.ti), money(m.to), money(m.close)], [2, 3, 4], "tot"));
+    return "<h2>Account Ledger: " + esc(m.ac.name) + esc(rangeEn(m.from, m.to)) + "</h2>" + '<div class="grid">' + box("Total in", money(m.ti)) + box("Total out", money(m.to)) + box("Closing balance", money(m.close), m.close < 0 ? "neg" : "pos") + "</div>" + tbl(["Date", "Details", "In", "Out", "Balance"], rows, [2, 3, 4]);
+  }
+
+  /* report */
+  function reportModel() {
+    var mode = ui.rmode, m = matcher();
+    var d = trips.filter(function (x) { return x.stage === "done" && m(x.date); }).sort(function (a, b) { return cmpDate(a.date, b.date) || a.id - b.id; });
+    var notDone = trips.filter(function (t) { return t.stage !== "done" && m(t.date); }).length;
+    var ge = gexp.filter(function (g) { return g.kind !== "pay" && m(g.date); });
+    var rc = pays.filter(function (p) { return p.kind !== "bill" && m(p.date); });
+    var fr = sum(d, function (x) { return x.freight; }), dv = sum(d, function (x) { return x.div || 0; }), xt = sum(d, function (x) { return x.extra || 0; }), te = sum(d, expTotal), tp = fr + dv + xt - te;
+    var gt = sum(ge, function (g) { return g.amt; }), net = tp - gt, rcT = sum(rc, function (x) { return x.amt; });
+    var title = mode === "day" ? "Daily Report " + ui.rval : mode === "month" ? "Monthly Report " + ui.rval : mode === "year" ? "Annual Report " + ui.rval : "Report" + rangeEn(ui.rfrom, ui.rto);
+    var byHead = {}, byP = {}, byV = {};
+    d.forEach(function (t) { t.exp.forEach(function (e) { var k = tl(e.type); byHead[k] = (byHead[k] || 0) + e.amt; }); });
+    ge.forEach(function (g) { var k = tl(g.head); byHead[k] = (byHead[k] || 0) + g.amt; });
+    d.forEach(function (t) { var p = byP[pn(t)] = byP[pn(t)] || { n: 0, fr: 0, rc: 0 }; p.n++; p.fr += bill(t); var v = byV[t.veh] = byV[t.veh] || { n: 0, fr: 0, ex: 0 }; v.n++; v.fr += earn(t); v.ex += expTotal(t); });
+    rc.forEach(function (x) { var p = byP[pn(x)] = byP[pn(x)] || { n: 0, fr: 0, rc: 0 }; p.rc += x.amt; });
+    var hk = Object.keys(byHead).sort(function (a, b) { return byHead[b] - byHead[a]; });
+    return { title: title, d: d, notDone: notDone, fr: fr, dv: dv, xt: xt, te: te, tp: tp, gt: gt, net: net, rcT: rcT, byHead: byHead, hk: hk, byP: byP, pk: Object.keys(byP), byV: byV, vk: Object.keys(byV) };
+  }
+  function reportTextEn(r) {
+    var L = ["*" + CO_EN + "*", r.title.toUpperCase(), "", "Trips completed: " + r.d.length, "Freight: " + money(r.fr), "Diversion: " + money(r.dv), "Extra income: " + money(r.xt), "Trip expenses: " + money(r.te), "Trip profit: " + money(r.tp), "General expenses: " + money(r.gt), "Received from parties: " + money(r.rcT), "NET PROFIT: " + money(r.net)];
+    if (r.d.length) { L.push("", "Trips:"); r.d.forEach(function (t) { L.push("- " + t.date + " | " + pn(t) + " | " + arrow(t) + " | " + t.veh + " | Freight " + money(t.freight) + (t.div ? " | Diversion " + money(t.div) : "") + (t.extra ? " | Extra " + money(t.extra) : "") + " | Exp " + money(expTotal(t)) + " | Profit " + money(profit(t))); }); }
+    if (r.hk.length) { L.push("", "Expense breakdown:"); r.hk.forEach(function (k) { L.push("- " + k + ": " + money(r.byHead[k])); }); }
+    if (r.pk.length) { L.push("", "By party:"); r.pk.forEach(function (k) { var q = r.byP[k]; L.push("- " + k + ": " + q.n + " trips | Freight " + money(q.fr) + " | Received " + money(q.rc)); }); }
+    if (r.vk.length) { L.push("", "By vehicle:"); r.vk.forEach(function (k) { var v = r.byV[k]; L.push("- " + k + ": " + v.n + " trips | Freight " + money(v.fr) + " | Exp " + money(v.ex) + " | Profit " + money(v.fr - v.ex)); }); }
+    return L.join("\n");
+  }
+  function reportBodyEn(r) {
+    var h = "<h2>" + esc(r.title) + "</h2>" + '<div class="grid">' + box("Trips completed", String(r.d.length)) + box("Freight", money(r.fr)) + box("Diversion", money(r.dv)) + box("Extra income", money(r.xt)) + box("Trip expenses", money(r.te)) +
+      box("Trip profit", money(r.tp), cls(r.tp)) + box("General expenses", money(r.gt)) + box("Received from parties", money(r.rcT)) + box("Net profit (trip profit &minus; general expenses)", money(r.net), "", true) + "</div>";
+    if (r.notDone) h += '<div class="note">' + r.notDone + " trip(s) not yet delivered are not included.</div>";
+    h += "<h2>Trips</h2>" + (r.d.length ? tbl(["Date", "Party", "Route", "Vehicle", "Freight", "Diversion", "Extra", "Expenses", "Profit"], r.d.map(function (t) { return tr([esc(t.date), esc(pn(t)), esc(arrow(t)), esc(t.veh), money(t.freight), money(t.div || 0), money(t.extra || 0), money(expTotal(t)), money(profit(t))], [4, 5, 6, 7, 8]); }), [4, 5, 6, 7, 8]) : '<div class="empty">No completed trips in this period.</div>');
+    h += "<h2>Expense Breakdown</h2>" + (r.hk.length ? tbl(["Head", "Amount"], r.hk.map(function (k) { return tr([esc(k), money(r.byHead[k])], [1]); }).concat([tr(["Total", money(r.te + r.gt)], [1], "tot")]), [1]) : '<div class="empty">No expenses in this period.</div>');
+    h += "<h2>By Party</h2>" + (r.pk.length ? tbl(["Party", "Trips", "Freight + diversion", "Received"], r.pk.map(function (k) { var q = r.byP[k]; return tr([esc(k), String(q.n), money(q.fr), money(q.rc)], [1, 2, 3]); }), [1, 2, 3]) : '<div class="empty">Nothing in this period.</div>');
+    h += "<h2>By Vehicle</h2>" + (r.vk.length ? tbl(["Vehicle", "Trips", "Freight + extra", "Expenses", "Profit"], r.vk.map(function (k) { var v = r.byV[k]; return tr([esc(k), String(v.n), money(v.fr), money(v.ex), money(v.fr - v.ex)], [1, 2, 3, 4]); }), [1, 2, 3, 4]) : '<div class="empty">No vehicle ran in this period.</div>');
+    return h;
+  }
+
+  function doShare(pdf, what, id) {
+    var title, text, body, t, kind;
+    if (what === "trip-full" || what === "trip-bill") {
+      t = find(id); if (!t) return;
+      var full = what === "trip-full";
+      title = (full ? "Trip-Report-" : "Trip-Bill-") + tcode(t).slice(1) + "-" + t.date; text = tripTextEn(t, full); body = tripBodyEn(t, full); kind = (full ? "Trip Report " : "Trip Bill ") + tcode(t);
+    } else if (what === "report") {
+      var r = reportModel(); title = r.title.replace(/\s+/g, "-"); text = reportTextEn(r); body = reportBodyEn(r); kind = r.title;
+    } else if (what === "party") {
+      if (!ui.party) { toast("Select a party first."); return; }
+      var p = partyModel(); title = "Party-Ledger-" + p.name.replace(/\s+/g, "-") + "-" + today(); text = partyTextEn(p); body = partyBodyEn(p); kind = "Party Ledger";
+    } else if (what === "acct") {
+      var am = acctModel(); if (!am) { toast("Add an account first."); return; }
+      title = "Account-Ledger-" + am.ac.name.replace(/\s+/g, "-") + "-" + today(); text = acctTextEn(am); body = acctBodyEn(am); kind = "Account Ledger";
+    } else if (what === "head") {
+      if (!ui.head) { toast("Select an expense head first."); return; }
+      var hm = headModel(); title = "Expense-Ledger-" + hm.name.replace(/\s+/g, "-") + "-" + today(); text = headTextEn(hm); body = headBodyEn(hm); kind = "Expense Ledger";
+    }
+    if (!text) { toast("Nothing to share yet."); return; }
+    if (pdf) {
+      var html = docHtml(title.replace(/([A-Za-z])-/g, "$1 "), body, kind);
+      if (hasNative("printHtml")) AndroidBridge.printHtml(title, html); else printWeb(title, html);
+      return;
+    }
+    if (hasNative("share")) { AndroidBridge.share(title.replace(/([A-Za-z])-/g, "$1 "), text); return; }
+    showSheet(text);
+  }
+
+  function backupJson() { return JSON.stringify({ app: "new-chaudhry-cargo", v: 2, trips: trips, pays: pays, gexp: gexp, accts: accts, aent: aent }); }
+  function bkInfo() {
+    var at = "";
+    try { at = localStorage.getItem(KEY + "-backup-at") || ""; } catch (e) {}
+    $("bk-info").textContent = at ? "Last backup: " + at : "No backup taken yet.";
+  }
+  function bkMsg(t) { $("bk-msg").textContent = t; }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest("button");
+    if (!b) return;
+    if (isStaff()) {
+      var SOK = { "slip-open": 1, "ss-add": 1, "ss-cam": 1, "ss-view": 1, "sv-close": 1, "ss-close": 1, "ss-del": 1, "sheet-close": 1, "sheet-copy": 1, "sheet-wa": 1, "sheet-dl": 1 };
+      if (b.dataset.tab) { if (b.dataset.tab !== "staff" && b.dataset.tab !== "users") return; }
+      else if (b.dataset.act) {
+        if (!SOK[b.dataset.act]) return;
+        if (b.dataset.act === "slip-open" && b.dataset.key !== "ns") return;
+        if (b.dataset.act === "ss-del" && ui.ss !== "ns") return;
+      }
+    }
+    if (b.dataset.tab) { ui.tab = b.dataset.tab; ui.confirm = null; ui.editRow = null; render(); return; }
+    var act = b.dataset.act;
+    if (!act) return;
+    if (act === "sh-text" || act === "sh-pdf") { doShare(act === "sh-pdf", b.dataset.what, b.dataset.id); return; }
+    if (act === "sheet-close") { $("sheet").hidden = true; return; }
+    if (act === "sheet-copy") { copyPlain($("sheet-text").value, function (ok) { toast(ok ? "Copied. Paste it in WhatsApp." : "Select the text and copy it manually."); }); return; }
+    if (act === "sheet-wa") { window.open("https://wa.me/?text=" + encodeURIComponent($("sheet-text").value), "_blank"); return; }
+    if (act === "sheet-dl") { downloadFile("NCCS-report-" + today() + ".txt", "text/plain", $("sheet-text").value); return; }
+    if (act === "slip-open") { openSlips(b.dataset.key, b.dataset.title); return; }
+    if (act === "ss-add") { $("ss-file").click(); return; }
+    if (act === "ss-cam") { $("ss-cam").click(); return; }
+    if (act === "ss-view") { slipGet(b.dataset.sid).then(function (u) { if (u) { $("sv-img").src = u; $("slipview").hidden = false; } }); return; }
+    if (act === "sv-close") { $("slipview").hidden = true; return; }
+    if (act === "ss-del") {
+      var sid = b.dataset.sid;
+      if (ui.ssConf === sid) {
+        var k0 = ui.ss;
+        bucketSet(k0, bucketGet(k0).filter(function (x) { return x !== sid; }));
+        if (k0.charAt(0) !== "e") slipDel(sid);
+        ui.ssConf = null; refreshSlipLabels();
+      } else ui.ssConf = sid;
+      drawSlips(); return;
+    }
+    if (act === "ss-close") { var sk = ui.ss; ui.ss = null; $("slipsheet").hidden = true; if (sk && isSaved(sk)) render(); return; }
+    var t = b.dataset.id ? find(b.dataset.id) : null;
+    var jump = null;
+    if (act === "next" && t) {
+      t.stage = t.stage === "wait" ? "load" : "done";
+      save();
+    } else if (act === "edit-trip" && t) {
+      if (ui.editTrip === t.id) clearPend("e" + t.id + ":");
+      ui.editTrip = ui.editTrip === t.id ? null : t.id;
+    } else if (act === "goedit" && t) {
+      ui.tab = t.stage === "done" ? "done" : "trips"; ui.editTrip = t.id; jump = "trip-" + t.id;
+    } else if (act === "edit-row") {
+      ui.editRow = ui.editRow === b.dataset.key ? null : b.dataset.key;
+    } else if (act === "cancel-edit") {
+      if (ui.editTrip) clearPend("e" + ui.editTrip + ":");
+      ui.editRow = null; ui.editTrip = null;
+    } else if (act === "del" && t) {
+      if (ui.confirm === t.id) { tripSlipIds(t).forEach(slipDel); clearPend("e" + t.id + ":"); trips = trips.filter(function (x) { return x.id !== t.id; }); ui.confirm = null; save(); }
+      else ui.confirm = t.id;
+    } else if (act === "bk-copy") {
+      var json = backupJson(), ta = $("bk-text");
+      ta.value = json; ta.hidden = false;
+      var dn = new Date();
+      try { localStorage.setItem(KEY + "-backup-at", today() + " " + pad(dn.getHours()) + ":" + pad(dn.getMinutes())); } catch (e) {}
+      bkInfo();
+      var manual = function () { ta.select(); bkMsg("Automatic copy failed. The text is selected below; copy it yourself."); };
+      try {
+        navigator.clipboard.writeText(json).then(function () { bkMsg("Backup copied. Paste it in WhatsApp or Notes and keep it safe."); }, manual);
+      } catch (e) { manual(); }
+    } else if (act === "bk-restore") {
+      var o2 = null;
+      try { o2 = JSON.parse($("bk-in").value.trim()); } catch (e) {}
+      if (!o2 || !Array.isArray(o2.trips)) { bkMsg("This backup text is not valid. Copy the full text again and paste it."); }
+      else if (!ui.rc) { ui.rc = true; b.textContent = "Sure you want to restore? Current data will be replaced"; }
+      else {
+        trips = o2.trips; pays = Array.isArray(o2.pays) ? o2.pays : []; gexp = Array.isArray(o2.gexp) ? o2.gexp : []; accts = Array.isArray(o2.accts) ? o2.accts : []; aent = Array.isArray(o2.aent) ? o2.aent : [];
+        trips.forEach(function (t) { if (!t.date) t.date = today(); if (!t.exp) t.exp = []; });
+        ui.rc = false; b.textContent = "Restore data"; $("bk-in").value = ""; save(); bkMsg("Data restored.");
+      }
+    } else if (act === "cp-close") {
+      $("cp-sheet").hidden = true;
+    } else if (act === "clear-pr") {
+      ui.pf = ""; ui.pt = ""; $("pf-from").value = ""; $("pf-to").value = "";
+    } else if (act === "clear-hr") {
+      ui.hf = ""; ui.ht = ""; $("hf-from").value = ""; $("hf-to").value = "";
+    } else if (act === "party") {
+      ui.party = b.dataset.name; jump = "party-detail";
+    } else if (act === "head") {
+      ui.head = b.dataset.name; jump = "head-detail";
+    } else if (act === "rm-pay") {
+      var pk = "p" + b.dataset.id;
+      if (ui.confirm === pk) { bucketGet("p:" + b.dataset.id).forEach(slipDel); pays = pays.filter(function (x) { return String(x.id) !== b.dataset.id; }); ui.confirm = null; save(); } else ui.confirm = pk;
+    } else if (act === "rm-g") {
+      var gk = "g" + b.dataset.id;
+      if (ui.confirm === gk) { bucketGet("g:" + b.dataset.id).forEach(slipDel); gexp = gexp.filter(function (x) { return String(x.id) !== b.dataset.id; }); ui.confirm = null; save(); } else ui.confirm = gk;
+    } else if (act === "clear-ex") {
+      trips = trips.filter(function (i) { return !i.example; });
+      pays = pays.filter(function (i) { return !i.example; });
+      gexp = gexp.filter(function (i) { return !i.example; });
+      save();
+    }
+    render();
+    if (jump) $(jump).scrollIntoView({ block: "start" });
+  });
+
+  document.addEventListener("change", function (ev) {
+    if (ev.target.id === "ss-file" || ev.target.id === "ss-cam") { onSlipFile(ev.target); }
+    else if (ev.target.id === "r-mode") { ui.rmode = ev.target.value; setReportInput(); renderReport(); }
+    else if (ev.target.id === "r-val") { ui.rval = ev.target.value; renderReport(); }
+    else if (ev.target.id === "r-from") { ui.rfrom = ev.target.value; renderReport(); }
+    else if (ev.target.id === "r-to") { ui.rto = ev.target.value; renderReport(); }
+    else if (ev.target.id === "pf-from") { ui.pf = ev.target.value; renderParty(); }
+    else if (ev.target.id === "pf-to") { ui.pt = ev.target.value; renderParty(); }
+    else if (ev.target.id === "hf-from") { ui.hf = ev.target.value; renderHeads(); }
+    else if (ev.target.id === "hf-to") { ui.ht = ev.target.value; renderHeads(); }
+  });
+
+  document.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var f = ev.target;
+    if (isStaff() && f.id !== "staff-form") return;
+    if (f.id === "staff-form") {
+      if (!isStaff()) return;
+      var sa = Number($("s-amt").value) || 0;
+      if (sa <= 0) return;
+      var tv = $("s-trip").value;
+      if (!tv) { toast("Select a trip first"); return; }
+      if (fbOn()) {
+        var tlab = "", ti = fbTrips.filter(function (o) { return String(o.id) === tv; })[0]; if (ti) tlab = ti.label;
+        var item = { head: $("s-head").value, kind: $("s-kind").value === "udhar" ? "udhar" : "cash", amt: sa, note: $("s-note").value.trim(), date: $("s-date").value || today(), by: me ? me.user : "", ts: Date.now() };
+        if (tv !== "none") { item.tid = Number(tv); item.trip = tlab; }
+        if ((pend["ns"] || []).length) item.slips = pend["ns"].slice();
+        delete pend["ns"];
+        var shh = $("s-head").value; f.reset(); $("s-head").value = shh; $("s-trip").value = tv; staffSend(item); return;
+      }
+      if (tv !== "none") {
+        addToTrip({ tid: tv, head: $("s-head").value, amt: sa, udhar: $("s-kind").value === "udhar", by: me ? me.user : "", date: $("s-date").value || today(), note: $("s-note").value.trim(), slips: (pend["ns"] || []).slice() });
+        delete pend["ns"]; var sh0 = $("s-head").value; f.reset(); $("s-head").value = sh0; $("s-trip").value = tv; save(); render(); toast("Expense added to the trip");
+        return;
+      }
+      gexp.push({ id: Date.now(), head: $("s-head").value, kind: $("s-kind").value === "udhar" ? "udhar" : "cash", amt: sa, note: $("s-note").value.trim(), date: $("s-date").value || today(), slips: (pend["ns"] || []).slice(), by: me ? me.user : "" });
+      delete pend["ns"]; var sh = $("s-head").value; f.reset(); $("s-head").value = sh; refreshSlipLabels(); save(); render(); toast("Expense added");
+      return;
+    }
+    if (f.id === "trip-form") {
+      trips.push({ id: Date.now(), party: $("t-party").value.trim(), goods: $("t-goods").value.trim(), from: $("t-from").value.trim(), to: $("t-to").value.trim(), veh: $("t-veh").value.trim(), drv: $("t-drv").value.trim(), freight: Number($("t-fr").value) || 0, div: Number($("t-div").value) || 0, divNote: $("t-dnote").value.trim(), extra: Number($("t-extra").value) || 0, extraNote: $("t-xnote").value.trim(), cash: Number($("t-cash").value) || 0, carry: carryFor($("t-drv").value, $("t-veh").value, 0), cashNote: $("t-cnote").value.trim(), cashMode: $("t-cmode").value, cashSlips: (pend["n:cash"] || []).slice(), stage: "wait", date: $("t-date").value || today(), exp: [] });
+      clearPend("n:"); f.reset(); refreshSlipLabels(); save(); render(); $("t-party").focus();
+    } else if (f.id === "pay-form") {
+      var name = $("pay-party").value.trim() || NOPARTY;
+      pays.push({ id: Date.now(), kind: $("p-kind").value === "bill" ? "bill" : undefined, party: name, amt: Number($("p-amt").value) || 0, note: $("p-note").value.trim(), date: $("p-date").value || today(), slips: (pend["np"] || []).slice() });
+      delete pend["np"]; ui.party = name; f.reset(); refreshSlipLabels(); save(); render();
+    } else if (f.id === "head-form") {
+      var hd = $("h-head").value;
+      gexp.push({ id: Date.now(), head: hd, kind: $("h-kind").value, amt: Number($("h-amt").value) || 0, note: $("h-note").value.trim(), date: $("h-date").value || today(), slips: (pend["ng"] || []).slice() });
+      delete pend["ng"]; ui.head = hd; f.reset(); $("h-head").value = hd; refreshSlipLabels(); save(); render();
+    } else if (f.dataset.form === "edit-trip") {
+      var t = find(f.dataset.id);
+      if (t) {
+        var fe = f.elements, oldIds = tripSlipIds(t);
+        t.date = fe.date.value || t.date; t.party = fe.party.value.trim(); t.goods = fe.goods.value.trim();
+        t.from = fe.from.value.trim(); t.to = fe.to.value.trim(); t.veh = fe.veh.value.trim(); t.drv = fe.drv.value.trim();
+        t.freight = Number(fe.freight.value) || 0; t.div = Number(fe.div.value) || 0; t.divNote = fe.dnote.value.trim(); t.extra = Number(fe.extra.value) || 0; t.extraNote = fe.xnote.value.trim(); t.cash = Number(fe.cash.value) || 0; t.carry = Number(fe.carry.value) || 0; t.cashNote = fe.cnote.value.trim(); t.stage = fe.stage.value; t.exp = readExp(f, "e" + t.id);
+        t.cashMode = fe.cmode.value; t.cashSlips = (pend["e" + t.id + ":cash"] || []).slice();
+        var newIds = tripSlipIds(t);
+        oldIds.forEach(function (i) { if (newIds.indexOf(i) < 0) slipDel(i); });
+        clearPend("e" + t.id + ":");
+        ui.editTrip = null; save(); render();
+      }
+    } else if (f.dataset.form === "edit-g") {
+      var g = gexp.filter(function (x) { return String(x.id) === f.dataset.id; })[0];
+      if (g) {
+        g.head = f.elements.head.value; g.kind = f.elements.kind.value; g.amt = Number(f.elements.amt.value) || 0;
+        g.date = f.elements.date.value || g.date; g.note = f.elements.note.value.trim();
+        ui.editRow = null; save(); render();
+      }
+    } else if (f.dataset.form === "edit-te") {
+      var tt = find(f.dataset.id), hd2 = f.dataset.head;
+      if (tt) {
+        var na = Number(f.elements.amt.value) || 0;
+        var oldSl = [];
+        tt.exp.forEach(function (x) { if (tl(x.type) === hd2) (x.slips || []).forEach(function (i) { oldSl.push(i); }); });
+        tt.exp = tt.exp.filter(function (x) { return tl(x.type) !== hd2; });
+        if (na > 0) { var ne = { type: hd2, amt: na, udhar: f.elements.udhar.checked }; if (oldSl.length) ne.slips = oldSl; tt.exp.push(ne); }
+        else oldSl.forEach(slipDel);
+        ui.editRow = null; save(); render();
+      }
+    } else if (f.dataset.form === "edit-pay") {
+      var pp = pays.filter(function (x) { return String(x.id) === f.dataset.id; })[0];
+      if (pp) {
+        pp.party = f.elements.party.value.trim(); pp.amt = Number(f.elements.amt.value) || 0;
+        pp.date = f.elements.date.value || pp.date; pp.note = f.elements.note.value.trim(); pp.kind = f.elements.kind.value === "bill" ? "bill" : undefined;
+        ui.party = pname(pp); ui.editRow = null; save(); render();
+      }
+    }
+  });
+
+  document.addEventListener("input", function (ev) {
+    var l = ev.target.closest && ev.target.closest(".exlist");
+    if (!l) return;
+    var tot = 0;
+    Array.prototype.forEach.call(l.querySelectorAll("input[type=number]"), function (i) { tot += Number(i.value) || 0; });
+    l.querySelector(".extv").textContent = money(tot);
+  });
+  /* ---------- Log in ---------- */
+  var AUTHKEY = "ncs-auth", SESSKEY = "ncs-session";
+  var K256 = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  function ror(x, n) { return (x >>> n) | (x << (32 - n)); }
+  function sha256(m) {
+    var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    var l = m.length, nb = ((l + 9 + 63) >> 6) << 6, b = new Uint8Array(nb), bits = l * 8, w = new Array(64), i, o;
+    b.set(m); b[l] = 0x80;
+    b[nb - 4] = bits >>> 24; b[nb - 3] = bits >>> 16; b[nb - 2] = bits >>> 8; b[nb - 1] = bits;
+    for (o = 0; o < nb; o += 64) {
+      for (i = 0; i < 16; i++) w[i] = (b[o + 4 * i] << 24) | (b[o + 4 * i + 1] << 16) | (b[o + 4 * i + 2] << 8) | b[o + 4 * i + 3];
+      for (i = 16; i < 64; i++) {
+        var s0 = ror(w[i - 15], 7) ^ ror(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = ror(w[i - 2], 17) ^ ror(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      var a = H[0], c1 = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (i = 0; i < 64; i++) {
+        var S1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K256[i] + w[i]) | 0;
+        var S0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22), mj = (a & c1) ^ (a & c) ^ (c1 & c), t2 = (S0 + mj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = c1; c1 = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + c1) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    var out = new Uint8Array(32);
+    for (i = 0; i < 8; i++) { out[4 * i] = H[i] >>> 24; out[4 * i + 1] = H[i] >>> 16; out[4 * i + 2] = H[i] >>> 8; out[4 * i + 3] = H[i]; }
+    return out;
+  }
+  function utf8(str) {
+    if (window.TextEncoder) return new TextEncoder().encode(str);
+    var u = unescape(encodeURIComponent(str)), a = new Uint8Array(u.length);
+    for (var i = 0; i < u.length; i++) a[i] = u.charCodeAt(i);
+    return a;
+  }
+  function cat() {
+    var n = 0, i, j;
+    for (i = 0; i < arguments.length; i++) n += arguments[i].length;
+    var o = new Uint8Array(n), k = 0;
+    for (i = 0; i < arguments.length; i++) { for (j = 0; j < arguments[i].length; j++) o[k++] = arguments[i][j]; }
+    return o;
+  }
+  function toHex(b) { var r = ""; for (var i = 0; i < b.length; i++) r += (b[i] < 16 ? "0" : "") + b[i].toString(16); return r; }
+  function randBytes(n) {
+    var a = new Uint8Array(n);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+    else for (var i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 256);
+    return a;
+  }
+  function kdf(pw, saltHex) {
+    var salt = utf8(saltHex), p = utf8(pw), h = sha256(cat(salt, p));
+    for (var i = 0; i < 20000; i++) h = sha256(cat(h, salt, p));
+    return toHex(h);
+  }
+  function newRecovery() {
+    var A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = randBytes(16), out = "";
+    for (var i = 0; i < 16; i++) { out += A.charAt(r[i] % 32); if (i % 4 === 3 && i < 15) out += "-"; }
+    return out;
+  }
+  function normCode(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+  function getAuth() {
+    try {
+      var r = localStorage.getItem(AUTHKEY); if (!r) return null;
+      var o = JSON.parse(r);
+      if (!o.users) o = { v: 2, users: [{ user: o.user, role: "admin", salt: o.salt, hash: o.hash }], rsalt: o.rsalt, rhash: o.rhash, created: o.created };
+      return o;
+    } catch (e) { return null; }
+  }
+  function setAuth(o) { try { localStorage.setItem(AUTHKEY, JSON.stringify(o)); return true; } catch (e) { return false; } }
+  function sessUser(a) {
+    var v = ""; try { v = localStorage.getItem(SESSKEY) || sessionStorage.getItem(SESSKEY) || ""; } catch (e) {}
+    if (!v || !a) return null;
+    if (v === "1") return a.users[0];
+    return a.users.filter(function (u) { return u.user === v; })[0] || null;
+  }
+  function setIn(remember, user) {
+    try { if (remember) localStorage.setItem(SESSKEY, user); else sessionStorage.setItem(SESSKEY, user); localStorage.setItem("ncs-last", user); } catch (e) {}
+  }
+  function setOut() { me = null; role = null; try { localStorage.removeItem(SESSKEY); sessionStorage.removeItem(SESSKEY); } catch (e) {} }
+  function findUser(a, name) { var n = String(name).toLowerCase(); return a.users.filter(function (u) { return u.user.toLowerCase() === n; })[0]; }
+  function lastUser() { try { return localStorage.getItem("ncs-last") || ""; } catch (e) { return ""; } }
+  var me = null, role = null;
+  function isStaff() { return role === "staff"; }
+  var authFail = 0, authLock = 0, authMode = "login", authCode = "";
+
+  function enterApp(u) {
+    me = u; role = u.role === "staff" ? "staff" : "admin";
+    var lbl = role === "staff" ? " (Staff)" : " (Admin)";
+    $("auth").hidden = true; $("app").hidden = false;
+    $("who").hidden = false; $("who-n").textContent = u.user + lbl;
+    if (role === "admin") { if (fbOn()) renderFbBox(); else { renderStaffBox(); renderLocalConnect(); } }
+    $("staff-box").hidden = role === "staff"; $("bk-box").hidden = role === "staff";
+    render();
+  }
+  function renderStaffBox() {
+    var a = getAuth(), box = $("staff-box"); if (!a || !box) return;
+    var st = a.users.filter(function (u) { return u.role === "staff"; })[0];
+    var h = '<h2>Staff account</h2><p class="sub">Staff (driver) can only view and add expenses. Trips, freight, party ledger, reports, backup and edit/delete are hidden from them.</p>';
+    if (!st) {
+      h += '<form id="st-create" autocomplete="off"><label class="full" for="st-user">Staff username<input id="st-user" required autocomplete="off" autocapitalize="none" placeholder="e.g. driver1"></label>' +
+        '<label class="full" for="st-pw">Staff password (at least 6 characters)<input id="st-pw" type="text" required autocomplete="off"></label>' +
+        '<button class="primary full" type="submit">Create staff account</button></form>';
+    } else {
+      h += '<p class="sub">Current staff account: <b>' + esc(st.user) + '</b></p>' +
+        '<form id="st-reset" autocomplete="off"><label class="full" for="st-pw2">Staff’s new password<input id="st-pw2" type="text" required autocomplete="off"></label>' +
+        '<button class="primary full" type="submit">Change password</button></form>' +
+        '<button type="button" class="link dl" data-au="st-del">Delete staff account</button>';
+    }
+    box.innerHTML = h + '<p class="sub" id="st-msg" role="status"></p>';
+    renderLocalConnect();
+  }
+  function authHead(t, sub) { return "<h2>" + t + "</h2>" + (sub ? '<p class="sub">' + sub + "</p>" : ""); }
+  function pwField(id, label, ac) { return '<label class="full" for="' + id + '">' + label + '<input id="' + id + '" type="password" autocomplete="' + (ac || "current-password") + '" required></label>'; }
+  function showAuth(mode, code) {
+    authMode = mode; if (code) authCode = code;
+    $("app").hidden = true; $("who").hidden = true; $("auth").hidden = false;
+    var h = '<div class="authcard">';
+    if (mode === "create") {
+      h += authHead("Create new account", "The app was opened for the first time. Create the owner account. The app will open with this username and password.") +
+        '<form id="au-create" autocomplete="off"><label class="full" for="au-user">Username<input id="au-user" required autocomplete="username" autocapitalize="none" placeholder="e.g. chaudhry"></label>' +
+        pwField("au-pw", "Password (at least 6 characters)", "new-password") + pwField("au-pw2", "Re-enter password", "new-password") +
+        '<label class="chk full"><input type="checkbox" data-showpw="au-create"> Show password</label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Create account</button></form><button type="button" class="alink" data-au="fb-cfg-open">Connect to server (staff or another phone)</button>';
+    } else if (mode === "code") {
+      h += authHead("Save the recovery code", "If you forget your password, only this code will help. Write it on paper or send it to yourself on WhatsApp. It will not be shown again.") +
+        '<div class="codebox" id="au-code">' + esc(authCode) + '</div><div class="sbar"><button type="button" data-au="copycode">Copy code</button></div><p class="sub" id="au-msg" role="status"></p>' +
+        '<label class="chk"><input type="checkbox" id="au-saved"> I have saved the code</label><button type="button" class="primary" data-au="codedone">Continue</button>';
+    } else if (mode === "forgot") {
+      h += authHead("Change password", "Enter the recovery code you received when creating the account and set a new password.") +
+        '<form id="au-forgot" autocomplete="off"><label class="full" for="fg-code">Recovery code<input id="fg-code" required autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" style="direction:ltr;text-align:center"></label>' +
+        pwField("fg-pw", "New password (at least 6 characters)", "new-password") + pwField("fg-pw2", "Re-enter new password", "new-password") +
+        '<label class="chk full"><input type="checkbox" data-showpw="au-forgot"> Show password</label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Change password</button></form>' +
+        '<button type="button" class="alink" data-au="tologin">Back to login</button>' +
+        '<button type="button" class="alink" data-au="wipe">No code either? Erase all data on this device and start fresh</button><p class="errtxt" id="au-wipe-msg"></p>';
+    } else {
+      var a = getAuth();
+      h += authHead("Log in", a ? "Welcome. Enter your username and password." : "") +
+        '<form id="au-login" autocomplete="on"><label class="full" for="li-user">Username<input id="li-user" required autocomplete="username" autocapitalize="none"' + (lastUser() ? ' value="' + esc(lastUser()) + '"' : "") + "></label>" +
+        pwField("li-pw", "Password", "current-password") +
+        '<label class="chk full"><input type="checkbox" data-showpw="au-login"> Show password</label>' +
+        '<label class="chk full"><input type="checkbox" id="li-keep" checked> Keep me logged in</label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Log in</button></form>' +
+        '<button type="button" class="alink" data-au="forgot">Forgot password?</button>';
+    }
+    $("auth").innerHTML = h + "</div>";
+    var first = $("auth").querySelector("input:not([type=checkbox])");
+    if (first && mode !== "code") { try { if (!first.value) first.focus(); else $("li-pw").focus(); } catch (e) {} }
+  }
+  function authErr(msg) { var e = $("au-err"); if (e) e.textContent = msg; }
+  function busy(form, on) { var b = form.querySelector("button[type=submit]"); if (b) { b.disabled = on; if (on) b.setAttribute("data-t", b.textContent), b.textContent = "…"; else if (b.getAttribute("data-t")) b.textContent = b.getAttribute("data-t"); } }
+  function later(fn) { setTimeout(fn, 30); }
+
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target, id = f.id;
+    if (id !== "au-create" && id !== "au-login" && id !== "au-forgot" && id !== "pw-form" && id !== "st-create" && id !== "st-reset") return;
+    if (id === "au-create") {
+      var u = $("au-user").value.trim(), p1 = $("au-pw").value, p2 = $("au-pw2").value;
+      if (u.length < 3) return authErr("Username must be at least 3 characters.");
+      if (p1.length < 6) return authErr("Password must be at least 6 characters.");
+      if (p1 !== p2) return authErr("The two passwords do not match.");
+      busy(f, true);
+      later(function () {
+        var salt = randBytes(16), rs = randBytes(16), code = newRecovery();
+        var rec = { v: 2, users: [{ user: u, role: "admin", salt: toHex(salt), hash: kdf(p1, toHex(salt)) }], rsalt: toHex(rs), rhash: kdf(normCode(code), toHex(rs)), created: today() };
+        if (!setAuth(rec)) { busy(f, false); return authErr("The account could not be saved in this browser. Close the private window and try again."); }
+        showAuth("code", code);
+      });
+    } else if (id === "au-login") {
+      var a = getAuth();
+      if (!a) return showAuth("create");
+      if (Date.now() < authLock) return authErr("Too many wrong attempts. " + Math.ceil((authLock - Date.now()) / 1000) + " seconds, then try again.");
+      var lu = $("li-user").value.trim(), lp = $("li-pw").value, keep = $("li-keep").checked;
+      busy(f, true);
+      later(function () {
+        var cu = findUser(a, lu);
+        var ok = !!cu && kdf(lp, cu.salt) === cu.hash;
+        if (ok) { authFail = 0; setIn(keep, cu.user); enterApp(cu); return; }
+        authFail++;
+        if (authFail >= 5) { authLock = Date.now() + 30000; authFail = 0; }
+        busy(f, false); $("li-pw").value = ""; authErr("Username or password is incorrect.");
+      });
+    } else if (id === "au-forgot") {
+      var a2 = getAuth(), fc = $("fg-code").value, n1 = $("fg-pw").value, n2 = $("fg-pw2").value;
+      if (!a2) return showAuth("create");
+      if (n1.length < 6) return authErr("New password must be at least 6 characters.");
+      if (n1 !== n2) return authErr("The two passwords do not match.");
+      busy(f, true);
+      later(function () {
+        if (kdf(normCode(fc), a2.rsalt) !== a2.rhash) { busy(f, false); return authErr("Recovery code is not valid."); }
+        var ns = toHex(randBytes(16));
+        a2.users[0].salt = ns; a2.users[0].hash = kdf(n1, ns);
+        setAuth(a2); authLock = 0; authFail = 0; setIn(true, a2.users[0].user); enterApp(a2.users[0]);
+      });
+    } else if (id === "st-create" || id === "st-reset") {
+      if (role !== "admin") return;
+      var sa2 = getAuth(), sm = $("st-msg"); if (!sa2) return;
+      var isNew = id === "st-create";
+      var su = isNew ? $("st-user").value.trim() : "", sp = (isNew ? $("st-pw") : $("st-pw2")).value;
+      if (isNew) {
+        if (su.length < 3) { sm.textContent = "Username must be at least 3 characters."; return; }
+        if (findUser(sa2, su)) { sm.textContent = "This username already exists."; return; }
+        if (sa2.users.some(function (x) { return x.role === "staff"; })) { sm.textContent = "A staff account already exists."; return; }
+      }
+      if (sp.length < 6) { sm.textContent = "Password must be at least 6 characters."; return; }
+      busy(f, true);
+      later(function () {
+        var b2 = getAuth(), nsl = toHex(randBytes(16));
+        if (isNew) b2.users.push({ user: su, role: "staff", salt: nsl, hash: kdf(sp, nsl) });
+        else { var stu = b2.users.filter(function (x) { return x.role === "staff"; })[0]; if (!stu) return; stu.salt = nsl; stu.hash = kdf(sp, nsl); }
+        setAuth(b2); renderStaffBox();
+        $("st-msg").textContent = isNew ? "Staff account created. Give the username and password to the driver." : "Staff password changed.";
+      });
+    } else if (id === "pw-form") {
+      var a3 = getAuth(), o = $("pw-old").value, w1 = $("pw-new").value, w2 = $("pw-new2").value, m = $("pw-msg");
+      if (fbOn()) {
+        if (!fbSess) return;
+        if (w1.length < 6) { m.textContent = "New password must be at least 6 characters."; return; }
+        if (w1 !== w2) { m.textContent = "The two new passwords do not match."; return; }
+        busy(f, true);
+        fbAuthCall("signInWithPassword", { email: fbSess.email, password: o, returnSecureToken: true })
+          .then(function (r) { return fbAuthCall("update", { idToken: r.idToken, password: w1, returnSecureToken: true }); })
+          .then(function (r) {
+            fbSess.idToken = r.idToken; fbSess.refresh = r.refreshToken || fbSess.refresh; fbSess.exp = Date.now() + Number(r.expiresIn || 3600) * 1000; fbSaveSess();
+            busy(f, false); f.reset(); m.textContent = "Password changed. Use the new password next time.";
+          }).catch(function (e) { busy(f, false); m.textContent = /INVALID_LOGIN|INVALID_PASSWORD/.test(String(e.message)) ? "Old password is incorrect." : fbErr(e); });
+        return;
+      }
+      if (!a3 || role !== "admin") return;
+      var mu = findUser(a3, me.user); if (!mu) return;
+      if (w1.length < 6) { m.textContent = "New password must be at least 6 characters."; return; }
+      if (w1 !== w2) { m.textContent = "The two new passwords do not match."; return; }
+      busy(f, true);
+      later(function () {
+        busy(f, false);
+        if (kdf(o, mu.salt) !== mu.hash) { m.textContent = "Old password is incorrect."; return; }
+        var ns2 = toHex(randBytes(16));
+        mu.salt = ns2; mu.hash = kdf(w1, ns2); setAuth(a3);
+        f.reset(); m.textContent = "Password changed.";
+      });
+    }
+  });
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("button[data-au]");
+    if (!b) return;
+    var au = b.getAttribute("data-au");
+    if (au.indexOf("st-") === 0 && role !== "admin") return;
+    if (au === "logout") { var wasFb = fbOn(); fbClear(); setOut(); if (wasFb) fbShow("login"); else showAuth("login"); }
+    else if (au === "st-del") {
+      if (!b.getAttribute("data-arm")) { b.setAttribute("data-arm", "1"); b.textContent = "Sure? The staff account will be deleted. Tap again"; return; }
+      var da = getAuth(); da.users = da.users.filter(function (x) { return x.role !== "staff"; }); setAuth(da); renderStaffBox();
+      $("st-msg").textContent = "Staff account deleted.";
+    }
+    else if (au === "forgot") showAuth("forgot");
+    else if (au === "tologin") showAuth("login");
+    else if (au === "copycode") {
+      var done = function () { $("au-msg").textContent = "Code copied. Paste it somewhere safe."; };
+      var manual = function () { var r = document.createRange(); r.selectNodeContents($("au-code")); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); $("au-msg").textContent = "Code is selected; copy it yourself."; };
+      if (window.AndroidBridge && window.AndroidBridge.copy) { AndroidBridge.copy(authCode); done(); }
+      else { try { navigator.clipboard.writeText(authCode).then(done, manual); } catch (e) { manual(); } }
+    } else if (au === "codedone") {
+      if (!$("au-saved").checked) { $("au-msg").textContent = "First save the code and tick the box."; return; }
+      authCode = ""; var ca = getAuth(); setIn(true, ca.users[0].user); enterApp(ca.users[0]);
+    } else if (au === "wipe") {
+      if (!authWipeArm) { authWipeArm = true; b.textContent = "Sure? All data and the account will be erased. Tap again"; return; }
+      try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+      try { indexedDB.deleteDatabase("ncs-slips"); } catch (e) {}
+      location.reload();
+    }
+  });
+  var authWipeArm = false;
+  document.addEventListener("change", function (ev) {
+    var t = ev.target;
+    if (t.getAttribute && t.getAttribute("data-showpw")) {
+      var fm = $(t.getAttribute("data-showpw"));
+      Array.prototype.forEach.call(fm.querySelectorAll("input[type=password],input[data-pw]"), function (i) { i.type = t.checked ? "text" : "password"; i.setAttribute("data-pw", "1"); });
+    }
+  });
+  function bootAuth() {
+    if (fbOn()) return fbBoot();
+    var a = getAuth(), u = sessUser(a);
+    if (!a) showAuth("create");
+    else if (u) enterApp(u);
+    else showAuth("login");
+  }
+
+  /* ---------- Server (Firebase) ---------- */
+  var FB_BAKED = "AIzaSyDfTlhpGlpYBcpCquKtTlB9PiOR4on4cOs|https://nccs-c55c3-default-rtdb.asia-southeast1.firebasedatabase.app";
+  var fbSess = null, fbRows = [], fbTimer = null, fbVer = 0, fbPushT = null;
+  function fbCfg() {
+    var r = FB_BAKED; try { r = localStorage.getItem("ncs-fbcfg") || r; } catch (e) {}
+    if (!r) return null;
+    var p = r.split("|");
+    return p.length === 2 && p[0] && p[1] ? { key: p[0], db: p[1].replace(/\/+$/, "") } : null;
+  }
+  function fbOn() { return !!fbCfg(); }
+  function parseCfg(txt) {
+    var k = String(txt).match(/AIza[0-9A-Za-z_\-]{30,}/), u = String(txt).match(/https:\/\/[A-Za-z0-9.\-]+\.(?:firebaseio\.com|firebasedatabase\.app)/);
+    return k && u ? k[0] + "|" + u[0] : null;
+  }
+  function http(method, url, body) {
+    return fetch(url, { method: method, headers: body !== undefined ? { "Content-Type": "application/json" } : {}, body: body !== undefined ? JSON.stringify(body) : undefined }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+        if (!r.ok) { var er = new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status)); er.status = r.status; throw er; }
+        return j;
+      });
+    });
+  }
+  var IDT = "https://identitytoolkit.googleapis.com/v1/accounts:";
+  function fbAuthCall(ep, body) { return http("POST", IDT + ep + "?key=" + encodeURIComponent(fbCfg().key), body); }
+  function fbSaveSess() {
+    if (!fbSess) return;
+    var v = JSON.stringify({ email: fbSess.email, uid: fbSess.uid, refresh: fbSess.refresh, role: fbSess.role, name: fbSess.name, keep: fbSess.keep });
+    try { localStorage.removeItem("ncs-fbsess"); sessionStorage.removeItem("ncs-fbsess"); (fbSess.keep ? localStorage : sessionStorage).setItem("ncs-fbsess", v); } catch (e) {}
+  }
+  function fbLoadSess() { try { var r = localStorage.getItem("ncs-fbsess") || sessionStorage.getItem("ncs-fbsess"); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function fbClear() { fbSess = null; clearInterval(fbTimer); fbTimer = null; clearTimeout(fbPushT); try { localStorage.removeItem("ncs-fbsess"); sessionStorage.removeItem("ncs-fbsess"); } catch (e) {} }
+  function fbToken() {
+    if (!fbSess) return Promise.reject(new Error("NOSESS"));
+    if (fbSess.idToken && Date.now() < fbSess.exp - 60000) return Promise.resolve(fbSess.idToken);
+    return fetch("https://securetoken.googleapis.com/v1/token?key=" + encodeURIComponent(fbCfg().key), { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(fbSess.refresh) })
+      .then(function (r) { return r.json().then(function (j) {
+        if (!j.id_token) { var er = new Error((j.error && j.error.message) || "REFRESH"); er.status = 401; throw er; }
+        fbSess.idToken = j.id_token; fbSess.refresh = j.refresh_token || fbSess.refresh; fbSess.exp = Date.now() + Number(j.expires_in || 3600) * 1000; fbSaveSess();
+        return fbSess.idToken;
+      }); });
+  }
+  function fdb(method, path, body) {
+    return fbToken().then(function (t) { return http(method, fbCfg().db + "/" + path + ".json?auth=" + encodeURIComponent(t), body); });
+  }
+  function fbEmail(u) { u = String(u).trim().toLowerCase(); return u.indexOf("@") > 0 ? u : u.replace(/\s+/g, "") + "@staff.ncs-cargo.app"; }
+  function fbErr(e) {
+    var m = String((e && e.message) || e);
+    if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "No internet or the server cannot be reached.";
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(m)) return "Username or password is incorrect.";
+    if (/EMAIL_EXISTS/.test(m)) return "This name or email is already in use.";
+    if (/WEAK_PASSWORD/.test(m)) return "Password must be at least 6 characters.";
+    if (/TOO_MANY_ATTEMPTS/.test(m)) return "Too many attempts. Try again in a little while.";
+    if (/OPERATION_NOT_ALLOWED/.test(m)) return "Email/Password sign-in is not enabled in Firebase.";
+    if (/USER_DISABLED/.test(m)) return "This account is disabled.";
+    if (/Permission denied|HTTP 401|HTTP 403/.test(m)) return "Permission denied. Check the Firebase rules.";
+    return "Error: " + m;
+  }
+  function setSync(s) { var e = $("syncst"); if (e) e.textContent = s === "ok" ? " ✓ Server" : s === "err" ? " ⚠ Offline" : ""; }
+
+  function fbShow(mode) {
+    $("app").hidden = true; $("who").hidden = true; $("auth").hidden = false;
+    var h = '<div class="authcard">';
+    if (mode === "cfg") {
+      h += authHead("Connect to server", "Paste the Firebase config (it contains apiKey and databaseURL) here. You can get it from the owner.") +
+        '<form id="fb-cfg"><label class="full" for="fbc">Firebase config<textarea id="fbc" required placeholder="apiKey ... databaseURL ..."></textarea></label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Connect</button></form><button type="button" class="alink" data-au="fb-back">Back</button>';
+    } else if (mode === "forgot") {
+      h += authHead("Reset password", "Admin: enter your email. A password reset link will be sent to it. If staff forget their password, the admin sets a new one from the Users tab.") +
+        '<form id="fb-forgot"><label class="full" for="fg-mail">Email<input id="fg-mail" type="email" required autocapitalize="none" style="direction:ltr"></label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Send link</button></form><button type="button" class="alink" data-au="fb-login-open">Back to login</button>';
+    } else if (mode === "create") {
+      h += authHead("Create admin account", "This happens only the first time. Enter your real email (a reset link will be sent to it if you forget the password).") +
+        '<form id="fb-create"><label class="full" for="fc-mail">Email<input id="fc-mail" type="email" required autocapitalize="none" style="direction:ltr"></label>' +
+        pwField("fc-pw", "Password (at least 6 characters)", "new-password") + pwField("fc-pw2", "Re-enter password", "new-password") +
+        '<p class="errtxt full" id="au-err" role="alert"></p><button class="primary full" type="submit">Create account</button></form><button type="button" class="alink" data-au="fb-login-open">Back to login</button>';
+    } else {
+      h += authHead("Log in", "Enter username (staff) or email (admin) and password.") +
+        '<form id="fb-login"><label class="full" for="fl-user">Username or email<input id="fl-user" required autocapitalize="none" autocomplete="username" style="direction:ltr"' + (lastUser() ? ' value="' + esc(lastUser()) + '"' : "") + "></label>" +
+        pwField("fl-pw", "Password", "current-password") +
+        '<label class="chk full"><input type="checkbox" id="fl-keep" checked> Keep me logged in</label><p class="errtxt full" id="au-err" role="alert"></p>' +
+        '<button class="primary full" type="submit">Log in</button></form>' +
+        '<button type="button" class="alink" data-au="fb-forgot-open">Forgot password?</button><span id="fb-newlink"></span>' +
+        '<button type="button" class="alink" data-au="fb-cfg-open">Change server config</button>';
+    }
+    $("auth").innerHTML = h + "</div>";
+    if (mode === "login") {
+      fetch(fbCfg().db + "/adminUid.json").then(function (r) { return r.json(); }).then(function (v) {
+        var n = $("fb-newlink"); if (n && !v) n.innerHTML = '<button type="button" class="alink" data-au="fb-create-open">First time? Create admin account</button>';
+      }).catch(function () {});
+    }
+  }
+  function fbResolve() {
+    return fdb("GET", "adminUid").then(function (a) {
+      if (a === fbSess.uid) return { role: "admin", name: fbSess.email };
+      return fdb("GET", "staff/" + fbSess.uid).then(function (n) { return n ? { role: "staff", name: String(n) } : null; });
+    });
+  }
+  function fbFinish(res, keep) {
+    fbSess.role = res.role; fbSess.name = res.name; fbSess.keep = keep; fbSaveSess();
+    try { localStorage.setItem("ncs-last", fbSess.email.replace("@staff.ncs-cargo.app", "")); } catch (e) {}
+    enterApp({ user: res.name, role: res.role }); fbStart();
+  }
+  function fbSignIn(email, pw) {
+    return fbAuthCall("signInWithPassword", { email: email, password: pw, returnSecureToken: true }).then(function (r) {
+      fbSess = { email: email, uid: r.localId, refresh: r.refreshToken, idToken: r.idToken, exp: Date.now() + Number(r.expiresIn || 3600) * 1000 };
+    });
+  }
+  function fbBoot() {
+    var s = fbLoadSess();
+    if (s && s.role) {
+      fbSess = { email: s.email, uid: s.uid, refresh: s.refresh, idToken: "", exp: 0, keep: s.keep, role: s.role, name: s.name };
+      enterApp({ user: s.name, role: s.role }); fbStart();
+    } else fbShow("login");
+  }
+  function fbForceOut(msg) { fbClear(); setOut(); fbShow("login"); if (msg) authErr(msg); }
+
+  /* Data sync */
+  function fbDirty() { try { return localStorage.getItem("ncs-dirty") === "1"; } catch (e) { return false; } }
+  function applyData(o, ts) {
+    trips = o.trips || []; pays = o.pays || []; gexp = o.gexp || []; accts = o.accts || []; aent = o.aent || [];
+    trips.forEach(function (t) { if (!t.date) t.date = today(); if (!t.exp) t.exp = []; });
+    saveLocal();
+    try { localStorage.setItem("ncs-ts", String(ts || 0)); } catch (e) {}
+  }
+  function syncPush() {
+    if (!(fbSess && role === "admin")) return;
+    fbVer++;
+    try { localStorage.setItem("ncs-dirty", "1"); } catch (e) {}
+    clearTimeout(fbPushT); fbPushT = setTimeout(pushNow, 1200);
+  }
+  function pushNow() {
+    if (!(fbSess && role === "admin")) return;
+    var v = fbVer, ts = Date.now();
+    fdb("PUT", "data", { json: JSON.stringify({ trips: trips, pays: pays, gexp: gexp, accts: accts, aent: aent }), ts: ts }).then(function () {
+      try { localStorage.setItem("ncs-ts", String(ts)); if (v === fbVer) localStorage.removeItem("ncs-dirty"); } catch (e) {}
+      if (v !== fbVer) pushNow(); else setSync("ok");
+      pubTrips();
+    }).catch(function (e) { setSync("err"); if (e.status === 401 || e.status === 403) fbToken().catch(function () {}); });
+  }
+  function busyInput() { var a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || !!ui.editTrip || !!ui.editRow; }
+  function pullData() {
+    return fdb("GET", "data").then(function (d) {
+      if (d && d.json) {
+        try { localStorage.setItem("ncs-prelocal", JSON.stringify({ trips: trips, pays: pays, gexp: gexp, accts: accts, aent: aent })); } catch (e) {}
+        applyData(JSON.parse(d.json), d.ts); render(); setSync("ok");
+      }
+    });
+  }
+  function fbStart() {
+    clearInterval(fbTimer);
+    if (role === "admin") {
+      setSync(""); pubTrips();
+      fdb("GET", "data/ts").then(function (ts) {
+        if (fbDirty() || ts === null) { pushNow(); return; }
+        if (ts > Number(localStorage.getItem("ncs-ts") || 0) || !(trips.length + pays.length + gexp.length + accts.length)) return pullData();
+        setSync("ok");
+      }).catch(function () { setSync("err"); });
+    } else fbPoll();
+    fbTimer = setInterval(fbPoll, 12000);
+  }
+  function fbPoll() {
+    if (!fbSess) return;
+    slipFlush();
+    if (role === "admin") pollAdmin(); else pollStaff();
+  }
+  function pollAdmin() {
+    fdb("GET", "staffExp").then(function (all) {
+      var ch = false;
+      Object.keys(all || {}).forEach(function (k) {
+        var x = all[k]; if (!x || x.merged) return;
+        var already = gexp.some(function (g) { return g.sk === k; }) || trips.some(function (t) { return (t.sx || []).some(function (q) { return q.sk === k; }); });
+        if (!already && x.tid && addToTrip({ tid: x.tid, head: x.head, amt: Number(x.amt) || 0, udhar: x.kind === "udhar", by: x.by || "", date: x.date || today(), note: x.note || "", sk: k, slips: x.slips || [] })) ch = true;
+        else if (!already) {
+          var id = Number(x.ts) || Date.now(); while (gexp.some(function (g) { return g.id === id; })) id++;
+          gexp.push({ id: id, head: x.head, kind: x.kind === "udhar" ? "udhar" : "cash", amt: Number(x.amt) || 0, note: (x.trip ? x.trip + " · " : "") + (x.note || ""), date: x.date || today(), slips: x.slips || [], by: x.by || "", sk: k });
+          ch = true;
+        }
+        fdb("PATCH", "staffExp/" + k, { merged: true }).catch(function () {});
+      });
+      if (ch) { save(); render(); toast("Staff added a new expense"); }
+    }).catch(function () {}).then(function () {
+      if (fbDirty()) return;
+      return fdb("GET", "data/ts").then(function (ts) {
+        setSync("ok");
+        if (ts && ts > Number(localStorage.getItem("ncs-ts") || 0) && !busyInput()) return pullData();
+      });
+    }).catch(function () { setSync("err"); });
+  }
+  function renderStaffListOnly() { var sel = $("s-trip"); if (sel && sel.options.length <= 2 && fbTrips.length) renderStaff(); }
+  function pubTrips() {
+    if (!(fbSess && role === "admin")) return;
+    var o = {}; openTrips().forEach(function (t) { o[t.id] = tlabel(t); });
+    fdb("PUT", "tripsPub", Object.keys(o).length ? o : null).catch(function () {});
+  }
+  function outbox() { try { return JSON.parse(localStorage.getItem("ncs-outbox") || "[]"); } catch (e) { return []; } }
+  function setOutbox(a) { try { localStorage.setItem("ncs-outbox", JSON.stringify(a)); } catch (e) {} }
+  function pollStaff() {
+    var ob = outbox(), chain = Promise.resolve();
+    ob.forEach(function (it) { chain = chain.then(function () { return fdb("POST", "staffExp", it).then(function () { setOutbox(outbox().filter(function (x) { return x.ts !== it.ts; })); }); }); });
+    chain.catch(function () {}).then(function () { return fdb("GET", "staffExp"); }).then(function (all) {
+      fbRows = Object.keys(all || {}).map(function (k) { var x = all[k]; return { date: x.date, id: Number(x.ts) || 0, head: tl(x.head), amt: Number(x.amt) || 0, udhar: x.kind === "udhar", text: (x.trip ? x.trip + " · " : "") + (x.note || "") + (x.by ? " · " + x.by : "") }; });
+      return fdb("GET", "tripsPub").then(function (tp) {
+        fbTrips = Object.keys(tp || {}).map(function (k) { return { id: k, label: tp[k] }; }).sort(function (a, b) { return a.label < b.label ? 1 : -1; });
+        setSync("ok"); if (ui.tab === "staff" && !busyInput()) renderStaff(); else if (ui.tab === "staff") renderStaffListOnly();
+      });
+    }).catch(function (e) {
+      if (e.status === 401 || e.status === 403 || /INVALID_REFRESH|USER_DISABLED|USER_NOT_FOUND|TOKEN_EXPIRED/.test(e.message)) return fbForceOut("This account is no longer active. Contact the admin.");
+      setSync("err");
+    });
+  }
+  function staffSend(item) {
+    return fdb("POST", "staffExp", item).then(function () {
+      fbRows.push({ date: item.date, id: item.ts, head: tl(item.head), amt: item.amt, udhar: item.kind === "udhar", text: (item.trip ? item.trip + " · " : "") + (item.note || "") + (item.by ? " · " + item.by : "") });
+      toast("Expense saved on the server"); setSync("ok");
+    }).catch(function () {
+      var a = outbox(); a.push(item); setOutbox(a); toast("No internet. The expense is saved and will be sent when the connection returns."); setSync("err");
+    }).then(function () { renderStaff(); });
+  }
+
+  /* Admin: staff management */
+  function renderFbBox() {
+    var box = $("staff-box"); if (!box) return;
+    box.innerHTML = '<h2>Server and staff</h2><p class="sub">This phone is connected to the server. Admin data stays the same on every phone. Staff can only view and add expenses.</p><div id="fb-stafflist"><p class="sub">…</p></div>' +
+      '<form id="fb-staff-add" autocomplete="off"><label class="full" for="fs-user">New staff username (English letters/numbers)<input id="fs-user" required autocapitalize="none" autocomplete="off" style="direction:ltr" placeholder="e.g. driver1"></label>' +
+      '<label class="full" for="fs-pw">Password (at least 6 characters)<input id="fs-pw" type="text" required autocomplete="off"></label><button class="primary full" type="submit">Create staff account</button></form><p class="sub" id="st-msg" role="status"></p>' +
+      '<button type="button" class="alink" data-au="fb-cfg-off">Disconnect from server and run a separate app on this phone</button>';
+    fdb("GET", "staff").then(function (s) {
+      var k = Object.keys(s || {});
+      $("fb-stafflist").innerHTML = k.length ? k.map(function (u) { return '<div class="sline"><span><b>' + esc(s[u]) + '</b> (Staff)</span><button type="button" class="link dl" data-au="fb-sdel" data-uid="' + esc(u) + '">Delete</button></div><form class="rstf" data-uid="' + esc(u) + '" data-name="' + esc(s[u]) + '"><input type="text" required minlength="6" placeholder="New password" aria-label="New password"><button type="submit">Reset password</button></form>'; }).join("") : '<p class="sub">No staff accounts yet.</p>';
+    }).catch(function (e) { var l = $("fb-stafflist"); if (l) l.innerHTML = '<p class="errtxt">' + esc(fbErr(e)) + "</p>"; });
+  }
+  function renderLocalConnect() {
+    var box = $("staff-box"); if (!box || fbOn()) return;
+    box.insertAdjacentHTML("beforeend", '<h2>Connect to server (data on every phone)</h2><p class="sub">Create a Firebase project and paste its config here. After that every phone stays in sync with the admin, and staff expenses reach you automatically. Existing data will be uploaded to the server.</p>' +
+      '<form id="fb-cfg2"><label class="full" for="fbc2">Firebase config<textarea id="fbc2" required placeholder="apiKey ... databaseURL ..."></textarea></label><p class="errtxt full" id="fbc2-err"></p><button class="primary full" type="submit">Connect to server</button></form>');
+  }
+
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target, id = f.id;
+    var isRst = !!(f.classList && f.classList.contains("rstf"));
+    if (!isRst && id !== "fb-login" && id !== "fb-create" && id !== "fb-forgot" && id !== "fb-cfg" && id !== "fb-cfg2" && id !== "fb-staff-add") return;
+    if (isRst) {
+      if (role !== "admin") return;
+      var uid0 = f.getAttribute("data-uid"), nm0 = f.getAttribute("data-name"), np0 = f.elements[0].value;
+      if (np0.length < 6) { toast("Password must be at least 6 characters."); return; }
+      busy(f, true);
+      var nem = nm0 + "." + Date.now().toString(36) + "@staff.ncs-cargo.app";
+      fbAuthCall("signUp", { email: nem, password: np0, returnSecureToken: true }).then(function (r) {
+        return fdb("PUT", "staff/" + r.localId, nm0).then(function () { return fdb("PUT", "staffAlias/" + nm0, nem); }).then(function () { return fdb("DELETE", "staff/" + uid0); });
+      }).then(function () { renderFbBox(); setTimeout(function () { var m0 = $("st-msg"); if (m0) m0.textContent = nm0 + " ’s new password is set. Please tell them."; }, 80); })
+        .catch(function (e) { busy(f, false); toast(fbErr(e)); });
+      return;
+    }
+    var fail = function (m) { busy(f, false); if (id === "fb-cfg2") { $("fbc2-err").textContent = m; } else if (id === "fb-staff-add") { $("st-msg").textContent = m; } else authErr(m); };
+    if (id === "fb-cfg" || id === "fb-cfg2") {
+      var c = parseCfg($(id === "fb-cfg" ? "fbc" : "fbc2").value);
+      if (!c) return fail("apiKey and databaseURL not found in the config. Paste the full config.");
+      try { localStorage.setItem("ncs-fbcfg", c); } catch (e) { return fail("Could not be saved."); }
+      location.reload(); return;
+    }
+    if (id === "fb-login") {
+      var u = $("fl-user").value.trim(), pw = $("fl-pw").value, keep = $("fl-keep").checked;
+      busy(f, true);
+      (u.indexOf("@") > 0 ? Promise.resolve(fbEmail(u)) : fetch(fbCfg().db + "/staffAlias/" + encodeURIComponent(u.toLowerCase()) + ".json").then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { return a || fbEmail(u); }, function () { return fbEmail(u); }))
+        .then(function (em) { return fbSignIn(em, pw); }).then(fbResolve).then(function (res) {
+        if (!res) { fbClear(); return fail("This account is not authorised. Ask the admin to create a staff account."); }
+        fbFinish(res, keep);
+      }).catch(function (e) { fbClear(); fail(fbErr(e)); });
+    } else if (id === "fb-create") {
+      var em = $("fc-mail").value.trim().toLowerCase(), p1 = $("fc-pw").value, p2 = $("fc-pw2").value;
+      if (p1.length < 6) return fail("Password must be at least 6 characters.");
+      if (p1 !== p2) return fail("The two passwords do not match.");
+      busy(f, true);
+      fbAuthCall("signUp", { email: em, password: p1, returnSecureToken: true }).then(function (r) {
+        fbSess = { email: em, uid: r.localId, refresh: r.refreshToken, idToken: r.idToken, exp: Date.now() + Number(r.expiresIn || 3600) * 1000 };
+      }, function (e) { if (/EMAIL_EXISTS/.test(e.message)) return fbSignIn(em, p1); throw e; })
+        .then(function () { return fdb("GET", "adminUid"); })
+        .then(function (a) { if (a && a !== fbSess.uid) throw new Error("ADMIN_EXISTS"); return fdb("PUT", "adminUid", fbSess.uid); })
+        .then(function () { fbFinish({ role: "admin", name: em }, true); })
+        .catch(function (e) { fbClear(); fail(e.message === "ADMIN_EXISTS" ? "An admin account already exists. Please log in." : fbErr(e)); });
+    } else if (id === "fb-forgot") {
+      busy(f, true);
+      fbAuthCall("sendOobCode", { requestType: "PASSWORD_RESET", email: $("fg-mail").value.trim() }).then(function () {
+        busy(f, false); authErr(""); $("au-err").style.color = "inherit"; $("au-err").textContent = "Link sent. Check your email (and spam).";
+      }).catch(function (e) { fail(fbErr(e)); });
+    } else if (id === "fb-staff-add") {
+      if (role !== "admin") return;
+      var su = $("fs-user").value.trim().toLowerCase(), sp = $("fs-pw").value;
+      if (!/^[a-z0-9_-]{3,30}$/.test(su)) return fail("Username may contain only English letters, numbers, _ and - (at least 3).");
+      if (sp.length < 6) return fail("Password must be at least 6 characters.");
+      busy(f, true);
+      var sem = su + "." + Date.now().toString(36) + "@staff.ncs-cargo.app";
+      fdb("GET", "staff").then(function (cur) {
+        if (Object.keys(cur || {}).some(function (k) { return cur[k] === su; })) throw new Error("NAME_TAKEN");
+        return fbAuthCall("signUp", { email: sem, password: sp, returnSecureToken: true });
+      }).then(function (r) {
+        return fdb("PUT", "staff/" + r.localId, su).then(function () { return fdb("PUT", "staffAlias/" + su, sem); });
+      }).then(function () { renderFbBox(); setTimeout(function () { var m = $("st-msg"); if (m) m.textContent = "Staff account created. Give the username and password to the driver."; }, 50); })
+        .catch(function (e) { fail(/NAME_TAKEN|EMAIL_EXISTS/.test(e.message) ? "This username already exists. Choose another name." : fbErr(e)); });
+    }
+  });
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("button[data-au]");
+    if (!b) return;
+    var au = b.getAttribute("data-au");
+    if (au.indexOf("fb-") !== 0) return;
+    if (au === "fb-forgot-open") fbShow("forgot");
+    else if (au === "fb-create-open") fbShow("create");
+    else if (au === "fb-login-open") fbShow("login");
+    else if (au === "fb-cfg-open") fbShow("cfg");
+    else if (au === "fb-back") { if (fbOn()) fbShow("login"); else showAuth(getAuth() ? "login" : "create"); }
+    else if (au === "fb-sdel") {
+      if (role !== "admin") return;
+      if (!b.getAttribute("data-arm")) { b.setAttribute("data-arm", "1"); b.textContent = "Sure?"; return; }
+      fdb("DELETE", "staff/" + b.getAttribute("data-uid")).then(renderFbBox).catch(function (e) { $("st-msg").textContent = fbErr(e); });
+    } else if (au === "fb-cfg-off") {
+      if (role !== "admin") return;
+      if (!b.getAttribute("data-arm")) { b.setAttribute("data-arm", "1"); b.textContent = "Sure? This phone will be disconnected from the server (data stays on this phone). Tap again"; return; }
+      fbClear(); setOut(); try { localStorage.removeItem("ncs-fbcfg"); localStorage.removeItem("ncs-ts"); localStorage.removeItem("ncs-dirty"); } catch (e) {}
+      location.reload();
+    }
+  });
+
+  ["t-date", "p-date", "h-date", "s-date", "ae-date"].forEach(function (id) { $(id).defaultValue = today(); $(id).value = today(); });
+  ["t-drv", "t-veh"].forEach(function (id) { $(id).addEventListener("input", updCarry); });
+  setReportInput();
+  bkInfo();
+  render();
+  bootAuth();
+})();
+</script>
+<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})</script>
+</html>
